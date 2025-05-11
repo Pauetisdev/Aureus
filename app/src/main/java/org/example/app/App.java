@@ -5,8 +5,8 @@ package org.example.app;
 
 import org.example.list.LinkedList;
 
-import static org.example.utilities.StringUtils.join;
-import static org.example.utilities.StringUtils.split;
+import static cat.uvic.teknos.dam.aureus.utilities.StringUtils.join;
+import static cat.uvic.teknos.dam.aureus.utilities.StringUtils.split;
 import static org.example.app.MessageUtils.getMessage;
 
 import org.apache.commons.text.WordUtils;

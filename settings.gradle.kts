@@ -10,5 +10,5 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "0.9.0"
 }
 
-rootProject.name = "cat/uvic/teknos/dam/aureus"
-include("app", "list", "utilities")
+rootProject.name = "aureus"
+include("app", "list", "utilities", "model", "repositories")
