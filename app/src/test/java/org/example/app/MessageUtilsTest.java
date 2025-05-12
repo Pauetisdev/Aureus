@@ -3,6 +3,7 @@
  */
 package org.example.app;
 
+import org.example.jbdc.MessageUtils;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
