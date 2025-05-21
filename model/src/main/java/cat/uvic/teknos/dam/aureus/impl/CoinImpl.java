@@ -1,4 +1,4 @@
-package cat.uvic.teknos.dam.aureus.repositories;
+package cat.uvic.teknos.dam.aureus.impl;
 
 import cat.uvic.teknos.dam.aureus.model.Coin;
 import cat.uvic.teknos.dam.aureus.model.CoinCollection;
@@ -20,12 +20,9 @@ public class CoinImpl implements Coin {
     public CoinImpl(Integer coinId, String coinName, Integer coinYear, String coinMaterial,
                     Double coinWeight, Double coinDiameter, Double estimatedValue,
                     String originCountry, String historicalSignificance, CoinCollection collection) {
-
-        // Validación de parámetros
         if (coinId == null || coinName == null || coinMaterial == null || originCountry == null || historicalSignificance == null) {
-            throw new IllegalArgumentException("Ningún campo puede ser null");
+            throw new IllegalArgumentException("Cap camp pot ser null.");
         }
-
         this.coinId = coinId;
         this.coinName = coinName;
         this.coinYear = coinYear;
@@ -43,9 +40,23 @@ public class CoinImpl implements Coin {
         return coinId;
     }
 
+    public void setCoinId(Integer coinId) {
+        if (coinId == null) {
+            throw new IllegalArgumentException("coinId no puede ser null");
+        }
+        this.coinId = coinId;
+    }
+
     @Override
     public String getCoinName() {
         return coinName;
+    }
+
+    public void setCoinName(String coinName) {
+        if (coinName == null) {
+            throw new IllegalArgumentException("coinName no puede ser null");
+        }
+        this.coinName = coinName;
     }
 
     @Override
@@ -53,9 +64,20 @@ public class CoinImpl implements Coin {
         return coinYear;
     }
 
+    public void setCoinYear(Integer coinYear) {
+        this.coinYear = coinYear;
+    }
+
     @Override
     public String getCoinMaterial() {
         return coinMaterial;
+    }
+
+    public void setCoinMaterial(String coinMaterial) {
+        if (coinMaterial == null) {
+            throw new IllegalArgumentException("coinMaterial no puede ser null");
+        }
+        this.coinMaterial = coinMaterial;
     }
 
     @Override
@@ -63,9 +85,17 @@ public class CoinImpl implements Coin {
         return coinWeight;
     }
 
+    public void setCoinWeight(Double coinWeight) {
+        this.coinWeight = coinWeight;
+    }
+
     @Override
     public Double getCoinDiameter() {
         return coinDiameter;
+    }
+
+    public void setCoinDiameter(Double coinDiameter) {
+        this.coinDiameter = coinDiameter;
     }
 
     @Override
@@ -73,9 +103,20 @@ public class CoinImpl implements Coin {
         return estimatedValue;
     }
 
+    public void setEstimatedValue(Double estimatedValue) {
+        this.estimatedValue = estimatedValue;
+    }
+
     @Override
     public String getOriginCountry() {
         return originCountry;
+    }
+
+    public void setOriginCountry(String originCountry) {
+        if (originCountry == null) {
+            throw new IllegalArgumentException("originCountry no puede ser null");
+        }
+        this.originCountry = originCountry;
     }
 
     @Override
@@ -83,8 +124,19 @@ public class CoinImpl implements Coin {
         return historicalSignificance;
     }
 
+    public void setHistoricalSignificance(String historicalSignificance) {
+        if (historicalSignificance == null) {
+            throw new IllegalArgumentException("historicalSignificance no puede ser null");
+        }
+        this.historicalSignificance = historicalSignificance;
+    }
+
     @Override
     public CoinCollection getCollection() {
         return collection;
+    }
+
+    public void setCollection(CoinCollection collection) {
+        this.collection = collection;
     }
 }

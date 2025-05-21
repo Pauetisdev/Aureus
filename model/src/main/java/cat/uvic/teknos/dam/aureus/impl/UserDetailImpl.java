@@ -1,4 +1,4 @@
-package cat.uvic.teknos.dam.aureus.repositories;
+package cat.uvic.teknos.dam.aureus.impl;
 
 import cat.uvic.teknos.dam.aureus.model.UserDetail;
 import cat.uvic.teknos.dam.aureus.model.User;
@@ -27,9 +27,17 @@ public class UserDetailImpl implements UserDetail {
         return userId;
     }
 
+    public void setUserId(int userId) {
+        this.userId = userId;
+    }
+
     @Override
     public Date getBirthday() {
         return birthday;
+    }
+
+    public void setBirthday(Date birthday) {
+        this.birthday = birthday;
     }
 
     @Override
@@ -37,9 +45,17 @@ public class UserDetailImpl implements UserDetail {
         return phone;
     }
 
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
     @Override
     public String getGender() {
         return gender;
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
     }
 
     @Override
@@ -47,8 +63,16 @@ public class UserDetailImpl implements UserDetail {
         return nationality;
     }
 
+    public void setNationality(String nationality) {
+        this.nationality = nationality;
+    }
+
     @Override
     public User getUser() {
         return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 }

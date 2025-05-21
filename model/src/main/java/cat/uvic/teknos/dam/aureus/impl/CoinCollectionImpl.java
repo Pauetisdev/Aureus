@@ -1,4 +1,4 @@
-package cat.uvic.teknos.dam.aureus.repositories;
+package cat.uvic.teknos.dam.aureus.impl;
 
 import cat.uvic.teknos.dam.aureus.model.Coin;
 import cat.uvic.teknos.dam.aureus.model.CoinCollection;
@@ -23,9 +23,17 @@ public class CoinCollectionImpl implements CoinCollection {
         return coinId;
     }
 
+    public void setCoinId(Integer coinId) {
+        this.coinId = coinId;
+    }
+
     @Override
     public Integer getCollectionId() {
         return collectionId;
+    }
+
+    public void setCollectionId(Integer collectionId) {
+        this.collectionId = collectionId;
     }
 
     @Override
@@ -33,8 +41,16 @@ public class CoinCollectionImpl implements CoinCollection {
         return coin;
     }
 
+    public void setCoin(Coin coin) {
+        this.coin = coin;
+    }
+
     @Override
     public Collection getCollection() {
         return collection;
+    }
+
+    public void setCollection(Collection collection) {
+        this.collection = collection;
     }
 }

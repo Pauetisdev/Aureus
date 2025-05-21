@@ -1,4 +1,4 @@
-package cat.uvic.teknos.dam.aureus.repositories;
+package cat.uvic.teknos.dam.aureus.impl;
 
 import cat.uvic.teknos.dam.aureus.model.Transaction;
 import cat.uvic.teknos.dam.aureus.model.User;
@@ -11,9 +11,9 @@ public class TransactionImpl implements Transaction {
     private Integer transactionId;
     private String materialName;
     private Timestamp transactionDate;
-    private User buyer; // Relación N:1 con User (comprador)
-    private User seller; // Relación N:1 con User (vendedor)
-    private List<CoinTransaction> coinTransactions; // Relación 1:N con CoinTransaction
+    private User buyer;
+    private User seller;
+    private List<CoinTransaction> coinTransactions;
 
     public TransactionImpl(Integer transactionId, String materialName, Timestamp transactionDate,
                            User buyer, User seller, List<CoinTransaction> coinTransactions) {
@@ -30,9 +30,17 @@ public class TransactionImpl implements Transaction {
         return transactionId;
     }
 
+    public void setTransactionId(Integer transactionId) {
+        this.transactionId = transactionId;
+    }
+
     @Override
     public String getMaterialName() {
         return materialName;
+    }
+
+    public void setMaterialName(String materialName) {
+        this.materialName = materialName;
     }
 
     @Override
@@ -40,9 +48,17 @@ public class TransactionImpl implements Transaction {
         return transactionDate;
     }
 
+    public void setTransactionDate(Timestamp transactionDate) {
+        this.transactionDate = transactionDate;
+    }
+
     @Override
     public User getBuyer() {
         return buyer;
+    }
+
+    public void setBuyer(User buyer) {
+        this.buyer = buyer;
     }
 
     @Override
@@ -50,8 +66,16 @@ public class TransactionImpl implements Transaction {
         return seller;
     }
 
+    public void setSeller(User seller) {
+        this.seller = seller;
+    }
+
     @Override
     public List<CoinTransaction> getCoinTransactions() {
         return coinTransactions;
+    }
+
+    public void setCoinTransactions(List<CoinTransaction> coinTransactions) {
+        this.coinTransactions = coinTransactions;
     }
 }

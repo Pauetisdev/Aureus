@@ -1,4 +1,4 @@
-package cat.uvic.teknos.dam.aureus.repositories;
+package cat.uvic.teknos.dam.aureus.impl;
 
 import cat.uvic.teknos.dam.aureus.model.User;
 import cat.uvic.teknos.dam.aureus.model.UserDetail;
@@ -14,10 +14,10 @@ public class UserImpl implements User {
     private String email;
     private String passwordHash;
     private Timestamp joinDate;
-    private UserDetail userDetail; // Relación 1:1 con UserDetail
-    private List<Collection> collections; // Relación 1:N con Collection
-    private List<Transaction> buyerTransactions; // Relaciones como comprador
-    private List<Transaction> sellerTransactions; // Relaciones como vendedor
+    private UserDetail userDetail;
+    private List<Collection> collections;
+    private List<Transaction> buyerTransactions;
+    private List<Transaction> sellerTransactions;
 
     public UserImpl(Integer userId, String username, String email, String passwordHash,
                     Timestamp joinDate, UserDetail userDetail, List<Collection> collections,
@@ -38,9 +38,17 @@ public class UserImpl implements User {
         return userId;
     }
 
+    public void setUserId(Integer userId) {
+        this.userId = userId;
+    }
+
     @Override
     public String getUsername() {
         return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     @Override
@@ -48,9 +56,17 @@ public class UserImpl implements User {
         return email;
     }
 
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
     @Override
     public String getPasswordHash() {
         return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
     }
 
     @Override
@@ -58,9 +74,17 @@ public class UserImpl implements User {
         return joinDate;
     }
 
+    public void setJoinDate(Timestamp joinDate) {
+        this.joinDate = joinDate;
+    }
+
     @Override
     public UserDetail getUserDetail() {
         return userDetail;
+    }
+
+    public void setUserDetail(UserDetail userDetail) {
+        this.userDetail = userDetail;
     }
 
     @Override
@@ -68,13 +92,25 @@ public class UserImpl implements User {
         return collections;
     }
 
+    public void setCollections(List<Collection> collections) {
+        this.collections = collections;
+    }
+
     @Override
     public List<Transaction> getBuyerTransactions() {
         return buyerTransactions;
     }
 
+    public void setBuyerTransactions(List<Transaction> buyerTransactions) {
+        this.buyerTransactions = buyerTransactions;
+    }
+
     @Override
     public List<Transaction> getSellerTransactions() {
         return sellerTransactions;
+    }
+
+    public void setSellerTransactions(List<Transaction> sellerTransactions) {
+        this.sellerTransactions = sellerTransactions;
     }
 }

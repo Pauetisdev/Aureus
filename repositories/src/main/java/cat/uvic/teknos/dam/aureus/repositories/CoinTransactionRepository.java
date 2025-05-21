@@ -1,12 +1,7 @@
-package cat.uvic.teknos.dam.aureus;
+package cat.uvic.teknos.dam.aureus.repositories;
 
 import cat.uvic.teknos.dam.aureus.model.CoinTransaction;
-import java.util.Set;
 
-public interface CoinTransactionRepository {
-    void insert(CoinTransaction coinTransaction);
-    void update(CoinTransaction coinTransaction);
-    void delete(CoinTransaction coinTransaction);
-    CoinTransaction getById(Integer coinTransactionId);
-    Set<CoinTransaction> getAll();
+public interface CoinTransactionRepository extends Repository<Integer, CoinTransaction> {
+
 }

@@ -27,7 +27,7 @@ public class SingleConnectionDataSource implements DataSource {
     public SingleConnectionDataSource(){
         var properties = new Properties();
         try{
-            properties.load(new FileInputStream("datasource.properties"));
+            properties.load(new FileInputStream("/datasource.properties"));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
