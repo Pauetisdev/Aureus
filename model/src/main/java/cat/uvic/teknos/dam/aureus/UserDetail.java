@@ -1,9 +1,9 @@
-package cat.uvic.teknos.dam.aureus.model;
+package cat.uvic.teknos.dam.aureus;
 
 import java.sql.Date;
 
 public interface UserDetail {
-    int getUserId();
+    int getId();
 
     Date getBirthday();
     String getPhone();

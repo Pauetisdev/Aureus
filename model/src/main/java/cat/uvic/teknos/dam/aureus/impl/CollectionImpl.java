@@ -1,20 +1,20 @@
 package cat.uvic.teknos.dam.aureus.impl;
 
-import cat.uvic.teknos.dam.aureus.model.Collection;
-import cat.uvic.teknos.dam.aureus.model.User;
-import cat.uvic.teknos.dam.aureus.model.CoinCollection;
+import cat.uvic.teknos.dam.aureus.Collection;
+import cat.uvic.teknos.dam.aureus.User;
+import cat.uvic.teknos.dam.aureus.CoinCollection;
 import java.util.List;
 
 public class CollectionImpl implements Collection {
 
-    private int collectionId;
+    private int id;
     private String collectionName;
     private String description;
     private User user;
     private List<CoinCollection> coinCollections;
 
-    public CollectionImpl(int collectionId, String collectionName, String description, User user, List<CoinCollection> coinCollections) {
-        this.collectionId = collectionId;
+    public CollectionImpl(int id, String collectionName, String description, User user, List<CoinCollection> coinCollections) {
+        this.id = id;
         this.collectionName = collectionName;
         this.description = description;
         this.user = user;
@@ -22,15 +22,15 @@ public class CollectionImpl implements Collection {
     }
 
     @Override
-    public int getCollectionId() {
-        return collectionId;
+    public int getId() {
+        return id;
     }
 
-    public void setCollectionId(int collectionId) {
-        if (collectionId <= 0) {
+    public void setId(int id) {
+        if (id <= 0) {
             throw new IllegalArgumentException("El ID de colección debe ser positivo");
         }
-        this.collectionId = collectionId;
+        this.id = id;
     }
 
     @Override

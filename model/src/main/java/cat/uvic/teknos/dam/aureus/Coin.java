@@ -1,8 +1,8 @@
-package cat.uvic.teknos.dam.aureus.model;
+package cat.uvic.teknos.dam.aureus;
 
 public interface Coin {
 
-    Integer getCoinId();
+    Integer getId();
     String getCoinName();
     Integer getCoinYear();
     String getCoinMaterial();

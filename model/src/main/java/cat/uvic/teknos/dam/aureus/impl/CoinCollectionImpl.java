@@ -1,8 +1,8 @@
 package cat.uvic.teknos.dam.aureus.impl;
 
-import cat.uvic.teknos.dam.aureus.model.Coin;
-import cat.uvic.teknos.dam.aureus.model.CoinCollection;
-import cat.uvic.teknos.dam.aureus.model.Collection;
+import cat.uvic.teknos.dam.aureus.Coin;
+import cat.uvic.teknos.dam.aureus.CoinCollection;
+import cat.uvic.teknos.dam.aureus.Collection;
 
 public class CoinCollectionImpl implements CoinCollection {
 

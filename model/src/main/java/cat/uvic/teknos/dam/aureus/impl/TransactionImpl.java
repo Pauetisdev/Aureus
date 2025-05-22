@@ -1,23 +1,23 @@
 package cat.uvic.teknos.dam.aureus.impl;
 
-import cat.uvic.teknos.dam.aureus.model.Transaction;
-import cat.uvic.teknos.dam.aureus.model.User;
-import cat.uvic.teknos.dam.aureus.model.CoinTransaction;
+import cat.uvic.teknos.dam.aureus.Transaction;
+import cat.uvic.teknos.dam.aureus.User;
+import cat.uvic.teknos.dam.aureus.CoinTransaction;
 import java.sql.Timestamp;
 import java.util.List;
 
 public class TransactionImpl implements Transaction {
 
-    private Integer transactionId;
+    private Integer id;
     private String materialName;
     private Timestamp transactionDate;
     private User buyer;
     private User seller;
     private List<CoinTransaction> coinTransactions;
 
-    public TransactionImpl(Integer transactionId, String materialName, Timestamp transactionDate,
+    public TransactionImpl(Integer id, String materialName, Timestamp transactionDate,
                            User buyer, User seller, List<CoinTransaction> coinTransactions) {
-        this.transactionId = transactionId;
+        this.id = id;
         this.materialName = materialName;
         this.transactionDate = transactionDate;
         this.buyer = buyer;
@@ -26,12 +26,12 @@ public class TransactionImpl implements Transaction {
     }
 
     @Override
-    public Integer getTransactionId() {
-        return transactionId;
+    public Integer getId() {
+        return id;
     }
 
-    public void setTransactionId(Integer transactionId) {
-        this.transactionId = transactionId;
+    public void setId(Integer id) {
+        this.id = id;
     }
 
     @Override

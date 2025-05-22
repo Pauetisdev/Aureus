@@ -1,20 +1,20 @@
 package cat.uvic.teknos.dam.aureus.impl;
 
-import cat.uvic.teknos.dam.aureus.model.UserDetail;
-import cat.uvic.teknos.dam.aureus.model.User;
+import cat.uvic.teknos.dam.aureus.UserDetail;
+import cat.uvic.teknos.dam.aureus.User;
 import java.sql.Date;
 
 public class UserDetailImpl implements UserDetail {
 
-    private int userId;
+    private int id;
     private Date birthday;
     private String phone;
     private String gender;
     private String nationality;
     private User user; // Relación 1:1 con User
 
-    public UserDetailImpl(int userId, Date birthday, String phone, String gender, String nationality, User user) {
-        this.userId = userId;
+    public UserDetailImpl(int id, Date birthday, String phone, String gender, String nationality, User user) {
+        this.id = id;
         this.birthday = birthday;
         this.phone = phone;
         this.gender = gender;
@@ -23,12 +23,12 @@ public class UserDetailImpl implements UserDetail {
     }
 
     @Override
-    public int getUserId() {
-        return userId;
+    public int getId() {
+        return id;
     }
 
-    public void setUserId(int userId) {
-        this.userId = userId;
+    public void setId(int id) {
+        this.id = id;
     }
 
     @Override

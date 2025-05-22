@@ -1,10 +1,10 @@
-package cat.uvic.teknos.dam.aureus.model;
+package cat.uvic.teknos.dam.aureus;
 
 import java.sql.Timestamp;
 import java.util.List;
 
 public interface Transaction {
-    Integer getTransactionId();
+    Integer getId();
     String getMaterialName();
     Timestamp getTransactionDate();
 

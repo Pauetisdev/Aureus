@@ -1,11 +1,11 @@
 package cat.uvic.teknos.dam.aureus.impl;
 
-import cat.uvic.teknos.dam.aureus.model.Coin;
-import cat.uvic.teknos.dam.aureus.model.CoinCollection;
+import cat.uvic.teknos.dam.aureus.Coin;
+import cat.uvic.teknos.dam.aureus.CoinCollection;
 
 public class CoinImpl implements Coin {
 
-    private Integer coinId;
+    private Integer id;
     private String coinName;
     private Integer coinYear;
     private String coinMaterial;
@@ -17,13 +17,13 @@ public class CoinImpl implements Coin {
     private CoinCollection collection;
 
     // Constructor
-    public CoinImpl(Integer coinId, String coinName, Integer coinYear, String coinMaterial,
+    public CoinImpl(Integer id, String coinName, Integer coinYear, String coinMaterial,
                     Double coinWeight, Double coinDiameter, Double estimatedValue,
                     String originCountry, String historicalSignificance, CoinCollection collection) {
-        if (coinId == null || coinName == null || coinMaterial == null || originCountry == null || historicalSignificance == null) {
+        if (id == null || coinName == null || coinMaterial == null || originCountry == null || historicalSignificance == null) {
             throw new IllegalArgumentException("Cap camp pot ser null.");
         }
-        this.coinId = coinId;
+        this.id = id;
         this.coinName = coinName;
         this.coinYear = coinYear;
         this.coinMaterial = coinMaterial;
@@ -35,17 +35,19 @@ public class CoinImpl implements Coin {
         this.collection = collection;
     }
 
+
     @Override
-    public Integer getCoinId() {
-        return coinId;
+    public Integer getId() {
+        return id;
     }
 
-    public void setCoinId(Integer coinId) {
-        if (coinId == null) {
-            throw new IllegalArgumentException("coinId no puede ser null");
+    public void setId(Integer id) {
+        if (id == null) {
+            throw new IllegalArgumentException("id no puede ser null");
         }
-        this.coinId = coinId;
+        this.id = id;
     }
+
 
     @Override
     public String getCoinName() {
@@ -59,6 +61,7 @@ public class CoinImpl implements Coin {
         this.coinName = coinName;
     }
 
+
     @Override
     public Integer getCoinYear() {
         return coinYear;
@@ -67,6 +70,7 @@ public class CoinImpl implements Coin {
     public void setCoinYear(Integer coinYear) {
         this.coinYear = coinYear;
     }
+
 
     @Override
     public String getCoinMaterial() {
@@ -80,6 +84,7 @@ public class CoinImpl implements Coin {
         this.coinMaterial = coinMaterial;
     }
 
+
     @Override
     public Double getCoinWeight() {
         return coinWeight;
@@ -88,6 +93,7 @@ public class CoinImpl implements Coin {
     public void setCoinWeight(Double coinWeight) {
         this.coinWeight = coinWeight;
     }
+
 
     @Override
     public Double getCoinDiameter() {
@@ -98,6 +104,7 @@ public class CoinImpl implements Coin {
         this.coinDiameter = coinDiameter;
     }
 
+
     @Override
     public Double getEstimatedValue() {
         return estimatedValue;
@@ -106,6 +113,7 @@ public class CoinImpl implements Coin {
     public void setEstimatedValue(Double estimatedValue) {
         this.estimatedValue = estimatedValue;
     }
+
 
     @Override
     public String getOriginCountry() {
@@ -119,6 +127,7 @@ public class CoinImpl implements Coin {
         this.originCountry = originCountry;
     }
 
+
     @Override
     public String getHistoricalSignificance() {
         return historicalSignificance;
@@ -130,6 +139,7 @@ public class CoinImpl implements Coin {
         }
         this.historicalSignificance = historicalSignificance;
     }
+
 
     @Override
     public CoinCollection getCollection() {

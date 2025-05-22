@@ -1,9 +1,9 @@
-package cat.uvic.teknos.dam.aureus.model;
+package cat.uvic.teknos.dam.aureus;
 
 import java.util.List;
 
 public interface Collection {
-    int getCollectionId();
+    int getId();
     String getCollectionName();
     String getDescription();
 

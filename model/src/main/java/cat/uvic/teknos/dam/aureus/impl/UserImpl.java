@@ -1,15 +1,15 @@
 package cat.uvic.teknos.dam.aureus.impl;
 
-import cat.uvic.teknos.dam.aureus.model.User;
-import cat.uvic.teknos.dam.aureus.model.UserDetail;
-import cat.uvic.teknos.dam.aureus.model.Collection;
-import cat.uvic.teknos.dam.aureus.model.Transaction;
+import cat.uvic.teknos.dam.aureus.User;
+import cat.uvic.teknos.dam.aureus.UserDetail;
+import cat.uvic.teknos.dam.aureus.Collection;
+import cat.uvic.teknos.dam.aureus.Transaction;
 import java.sql.Timestamp;
 import java.util.List;
 
 public class UserImpl implements User {
 
-    private Integer userId;
+    private Integer id;
     private String username;
     private String email;
     private String passwordHash;
@@ -19,10 +19,10 @@ public class UserImpl implements User {
     private List<Transaction> buyerTransactions;
     private List<Transaction> sellerTransactions;
 
-    public UserImpl(Integer userId, String username, String email, String passwordHash,
+    public UserImpl(Integer id, String username, String email, String passwordHash,
                     Timestamp joinDate, UserDetail userDetail, List<Collection> collections,
                     List<Transaction> buyerTransactions, List<Transaction> sellerTransactions) {
-        this.userId = userId;
+        this.id = id;
         this.username = username;
         this.email = email;
         this.passwordHash = passwordHash;
@@ -34,12 +34,12 @@ public class UserImpl implements User {
     }
 
     @Override
-    public Integer getUserId() {
-        return userId;
+    public Integer getId() {
+        return id;
     }
 
-    public void setUserId(Integer userId) {
-        this.userId = userId;
+    public void setId(Integer id) {
+        this.id = id;
     }
 
     @Override

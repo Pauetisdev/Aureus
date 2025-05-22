@@ -1,4 +1,4 @@
-package cat.uvic.teknos.dam.aureus.model;
+package cat.uvic.teknos.dam.aureus;
 
 public interface CoinCollection {
     Integer getCoinId();

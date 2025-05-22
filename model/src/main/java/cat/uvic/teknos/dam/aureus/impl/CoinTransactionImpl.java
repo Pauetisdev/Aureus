@@ -1,8 +1,8 @@
 package cat.uvic.teknos.dam.aureus.impl;
 
-import cat.uvic.teknos.dam.aureus.model.Coin;
-import cat.uvic.teknos.dam.aureus.model.CoinTransaction;
-import cat.uvic.teknos.dam.aureus.model.Transaction;
+import cat.uvic.teknos.dam.aureus.Coin;
+import cat.uvic.teknos.dam.aureus.CoinTransaction;
+import cat.uvic.teknos.dam.aureus.Transaction;
 import java.math.BigDecimal;
 
 public class CoinTransactionImpl implements CoinTransaction {
