@@ -21,12 +21,12 @@ public class JdbcUserDetailRepository implements UserDetailRepository {
 
     @Override
     public void save(UserDetail userDetail) {
-        var connection = dataSource.getConnection();
+        try (var connection = dataSource.getConnection();
+             var preparedStatement = connection.prepareStatement(
+                     "INSERT INTO USER_DETAIL (USER_ID, BIRTHDATE, PHONE, GENDER, NATIONALITY) VALUES (?, ?, ?, ?, ?) " +
+                             "ON DUPLICATE KEY UPDATE BIRTHDATE = VALUES(BIRTHDATE), PHONE = VALUES(PHONE), GENDER = VALUES(GENDER), NATIONALITY = VALUES(NATIONALITY)"
+             )) {
 
-        try (var preparedStatement = connection.prepareStatement(
-                "INSERT INTO USER_DETAIL (USER_ID, BIRTHDATE, PHONE, GENDER, NATIONALITY) VALUES (?, ?, ?, ?, ?) " +
-                        "ON DUPLICATE KEY UPDATE BIRTHDATE = VALUES(BIRTHDATE), PHONE = VALUES(PHONE), GENDER = VALUES(GENDER), NATIONALITY = VALUES(NATIONALITY)"
-        )) {
             preparedStatement.setInt(1, userDetail.getId());
 
             if (userDetail.getBirthday() != null) {
@@ -48,11 +48,11 @@ public class JdbcUserDetailRepository implements UserDetailRepository {
 
     @Override
     public void delete(UserDetail userDetail) {
-        var connection = dataSource.getConnection();
+        try (var connection = dataSource.getConnection();
+             var preparedStatement = connection.prepareStatement(
+                     "DELETE FROM USER_DETAIL WHERE USER_ID = ?"
+             )) {
 
-        try (var preparedStatement = connection.prepareStatement(
-                "DELETE FROM USER_DETAIL WHERE USER_ID = ?"
-        )) {
             preparedStatement.setInt(1, userDetail.getId());
             preparedStatement.executeUpdate();
 
@@ -63,32 +63,33 @@ public class JdbcUserDetailRepository implements UserDetailRepository {
 
     @Override
     public UserDetail get(Integer id) {
-        var connection = dataSource.getConnection();
+        try (var connection = dataSource.getConnection();
+             var preparedStatement = connection.prepareStatement(
+                     "SELECT * FROM USER_DETAIL WHERE USER_ID = ?"
+             )) {
 
-        try (var preparedStatement = connection.prepareStatement(
-                "SELECT * FROM USER_DETAIL WHERE USER_ID = ?"
-        )) {
             preparedStatement.setInt(1, id);
-            var rs = preparedStatement.executeQuery();
 
-            if (rs.next()) {
-                var userDetail = new UserDetailImpl();
-                userDetail.setId(rs.getInt("USER_ID"));
+            try (var rs = preparedStatement.executeQuery()) {
+                if (rs.next()) {
+                    var userDetail = new UserDetailImpl();
+                    userDetail.setId(rs.getInt("USER_ID"));
 
-                var sqlDate = rs.getDate("BIRTHDATE");
-                if (sqlDate != null) {
-                    userDetail.setBirthday((java.sql.Date) new Date(sqlDate.getTime()));
+                    var sqlDate = rs.getDate("BIRTHDATE");
+                    if (sqlDate != null) {
+                        userDetail.setBirthday((java.sql.Date) new Date(sqlDate.getTime()));
+                    } else {
+                        userDetail.setBirthday(null);
+                    }
+
+                    userDetail.setPhone(rs.getString("PHONE"));
+                    userDetail.setGender(rs.getString("GENDER"));
+                    userDetail.setNationality(rs.getString("NATIONALITY"));
+
+                    return userDetail;
                 } else {
-                    userDetail.setBirthday(null);
+                    return null;
                 }
-
-                userDetail.setPhone(rs.getString("PHONE"));
-                userDetail.setGender(rs.getString("GENDER"));
-                userDetail.setNationality(rs.getString("NATIONALITY"));
-
-                return userDetail;
-            } else {
-                return null;
             }
 
         } catch (SQLException e) {
@@ -98,30 +99,31 @@ public class JdbcUserDetailRepository implements UserDetailRepository {
 
     @Override
     public Set<UserDetail> getAll() {
-        var connection = dataSource.getConnection();
         Set<UserDetail> userDetails = new HashSet<>();
 
-        try (var preparedStatement = connection.prepareStatement(
-                "SELECT * FROM USER_DETAIL"
-        )) {
-            var rs = preparedStatement.executeQuery();
+        try (var connection = dataSource.getConnection();
+             var preparedStatement = connection.prepareStatement(
+                     "SELECT * FROM USER_DETAIL"
+             )) {
 
-            while (rs.next()) {
-                var userDetail = new UserDetailImpl();
-                userDetail.setId(rs.getInt("USER_ID"));
+            try (var rs = preparedStatement.executeQuery()) {
+                while (rs.next()) {
+                    var userDetail = new UserDetailImpl();
+                    userDetail.setId(rs.getInt("USER_ID"));
 
-                var sqlDate = rs.getDate("BIRTHDATE");
-                if (sqlDate != null) {
-                    userDetail.setBirthday((java.sql.Date) new Date(sqlDate.getTime()));
-                } else {
-                    userDetail.setBirthday(null);
+                    var sqlDate = rs.getDate("BIRTHDATE");
+                    if (sqlDate != null) {
+                        userDetail.setBirthday((java.sql.Date) new Date(sqlDate.getTime()));
+                    } else {
+                        userDetail.setBirthday(null);
+                    }
+
+                    userDetail.setPhone(rs.getString("PHONE"));
+                    userDetail.setGender(rs.getString("GENDER"));
+                    userDetail.setNationality(rs.getString("NATIONALITY"));
+
+                    userDetails.add(userDetail);
                 }
-
-                userDetail.setPhone(rs.getString("PHONE"));
-                userDetail.setGender(rs.getString("GENDER"));
-                userDetail.setNationality(rs.getString("NATIONALITY"));
-
-                userDetails.add(userDetail);
             }
 
             return userDetails;

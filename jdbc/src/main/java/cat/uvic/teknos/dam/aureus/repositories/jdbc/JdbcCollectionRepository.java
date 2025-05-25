@@ -5,11 +5,12 @@ import cat.uvic.teknos.dam.aureus.impl.CollectionImpl;
 import cat.uvic.teknos.dam.aureus.repositories.CollectionRepository;
 import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.DataSource;
 import cat.uvic.teknos.dam.aureus.repositories.jdbc.exceptions.CrudException;
+import cat.uvic.teknos.dam.aureus.repositories.jdbc.exceptions.EntityNotFoundException;
+import cat.uvic.teknos.dam.aureus.repositories.jdbc.exceptions.InvalidDataException;
+import cat.uvic.teknos.dam.aureus.repositories.jdbc.exceptions.RepositoryException;
 
 import java.sql.*;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 public class JdbcCollectionRepository implements CollectionRepository {
@@ -22,9 +23,14 @@ public class JdbcCollectionRepository implements CollectionRepository {
 
     @Override
     public void save(Collection collection) {
+        if (collection.getCollectionName() == null || collection.getCollectionName().isBlank()) {
+            throw new InvalidDataException("Collection name cannot be empty");
+        }
+        // add other validations here...
+
         String sql = "INSERT INTO COLLECTION (COLLECTION_NAME, DESCRIPTION, USER_ID) VALUES (?, ?, ?)";
         try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             ps.setString(1, collection.getCollectionName());
             ps.setString(2, collection.getDescription());
@@ -32,10 +38,17 @@ public class JdbcCollectionRepository implements CollectionRepository {
 
             ps.executeUpdate();
 
+            try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    collection.setId(generatedKeys.getInt(1));
+                }
+            }
+
         } catch (SQLException e) {
-            throw new CrudException("Error guardando colección", e);
+            throw new RepositoryException("Error saving collection", e);
         }
     }
+
 
     @Override
     public void delete(Collection collection) {
@@ -66,14 +79,16 @@ public class JdbcCollectionRepository implements CollectionRepository {
                     c.setDescription(rs.getString("DESCRIPTION"));
                     c.setId(rs.getInt("USER_ID"));
                     return c;
+                } else {
+                    throw new EntityNotFoundException("Collection with ID " + id + " not found.");
                 }
-                return null;
             }
 
         } catch (SQLException e) {
-            throw new CrudException("Error obteniendo colección", e);
+            throw new RepositoryException("Database access error", e);
         }
     }
+
 
     @Override
     public Set<Collection> getAll() {
@@ -88,7 +103,7 @@ public class JdbcCollectionRepository implements CollectionRepository {
                 c.setId(rs.getInt("COLLECTION_ID"));
                 c.setCollectionName(rs.getString("COLLECTION_NAME"));
                 c.setDescription(rs.getString("DESCRIPTION"));
-                c.setId(rs.getInt("USER_ID"));
+                c.setId(rs.getInt("USER_ID"));  // ID usuario bien puesto
                 collections.add(c);
             }
             return collections;
@@ -97,5 +112,4 @@ public class JdbcCollectionRepository implements CollectionRepository {
             throw new CrudException("Error obteniendo todas las colecciones", e);
         }
     }
-
 }

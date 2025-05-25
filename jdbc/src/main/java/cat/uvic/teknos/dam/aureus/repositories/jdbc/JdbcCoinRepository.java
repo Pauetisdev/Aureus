@@ -36,8 +36,9 @@ public class JdbcCoinRepository implements CoinRepository {
             ps.setString(7, coin.getOriginCountry());
             ps.setString(8, coin.getHistoricalSignificance());
 
-            if (coin.getId() != null) {
-                ps.setInt(9, coin.getId());
+            // GET ESPECIFIC ID
+            if (coin.getCollection() != null && coin.getCollection().getCollectionId() != null) {
+                ps.setInt(9, coin.getCollection().getCollectionId());
             } else {
                 ps.setNull(9, Types.INTEGER);
             }
@@ -45,9 +46,10 @@ public class JdbcCoinRepository implements CoinRepository {
             ps.executeUpdate();
 
         } catch (SQLException e) {
-            throw new CrudException("Error guardando moneda", e);
+            throw new CrudException("Error saving coin", e);
         }
     }
+
 
     @Override
     public void delete(Coin coin) {
@@ -59,7 +61,7 @@ public class JdbcCoinRepository implements CoinRepository {
             ps.executeUpdate();
 
         } catch (SQLException e) {
-            throw new CrudException("Error borrando moneda", e);
+            throw new CrudException("Error deleting coin", e);
         }
     }
 
@@ -82,13 +84,14 @@ public class JdbcCoinRepository implements CoinRepository {
                     coin.setEstimatedValue(rs.getBigDecimal("ESTIMATED_VALUE"));
                     coin.setOriginCountry(rs.getString("ORIGIN_COUNTRY"));
                     coin.setHistoricalSignificance(rs.getString("HISTORICAL_SIGNIFICANCE"));
-                    coin.setId(rs.getInt("COLLECTION_ID"));
+                    // Aquí deberías setear la colección si quieres, por ejemplo:
+                    // coin.setCollection(collectionObjectFromId(rs.getInt("COLLECTION_ID")));
                     return coin;
                 }
                 return null;
             }
         } catch (SQLException e) {
-            throw new CrudException("Error obteniendo moneda", e);
+            throw new CrudException("Error getting coin", e);
         }
     }
 
@@ -111,65 +114,68 @@ public class JdbcCoinRepository implements CoinRepository {
                 coin.setEstimatedValue(rs.getBigDecimal("ESTIMATED_VALUE"));
                 coin.setOriginCountry(rs.getString("ORIGIN_COUNTRY"));
                 coin.setHistoricalSignificance(rs.getString("HISTORICAL_SIGNIFICANCE"));
-                coin.setId(rs.getInt("COLLECTION_ID"));
+                // Aquí también podrías cargar la colección si quieres
                 coins.add(coin);
             }
             return coins;
 
         } catch (SQLException e) {
-            throw new CrudException("Error obteniendo todas las monedas", e);
+            throw new CrudException("Error getting all coins", e);
         }
     }
-
 
     @Override
     public List<Coin> findByMaterial(String material) {
         List<Coin> coins = new ArrayList<>();
-        var connection = dataSource.getConnection();
-        try (var ps = connection.prepareStatement("SELECT * FROM COIN WHERE coin_material = ?")) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement ps = connection.prepareStatement("SELECT * FROM COIN WHERE COIN_MATERIAL = ?")) {
+
             ps.setString(1, material);
-            var rs = ps.executeQuery();
-            while (rs.next()) {
-                JdbcCoin coin = new JdbcCoin();
-                coin.setId(rs.getInt("id"));
-                coin.setCoinName(rs.getString("coin_name"));
-                coin.setOriginCountry(rs.getString("origin_country"));
-                coin.setCoinYear(rs.getInt("coin_year"));
-                coin.setCoinMaterial(rs.getString("coin_material"));
-                coin.setCoinWeight(rs.getBigDecimal("coin_weight"));
-                coin.setCoinDiameter(rs.getBigDecimal("coin_diameter"));
-                coin.setEstimatedValue(rs.getBigDecimal("estimated_value"));
-                coin.setHistoricalSignificance(rs.getString("historical_significance"));
-                coins.add(coin);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    JdbcCoin coin = new JdbcCoin();
+                    coin.setId(rs.getInt("COIN_ID"));
+                    coin.setCoinName(rs.getString("COIN_NAME"));
+                    coin.setOriginCountry(rs.getString("ORIGIN_COUNTRY"));
+                    coin.setCoinYear(rs.getInt("COIN_YEAR"));
+                    coin.setCoinMaterial(rs.getString("COIN_MATERIAL"));
+                    coin.setCoinWeight(rs.getBigDecimal("COIN_WEIGHT"));
+                    coin.setCoinDiameter(rs.getBigDecimal("COIN_DIAMETER"));
+                    coin.setEstimatedValue(rs.getBigDecimal("ESTIMATED_VALUE"));
+                    coin.setHistoricalSignificance(rs.getString("HISTORICAL_SIGNIFICANCE"));
+                    coins.add(coin);
+                }
             }
         } catch (SQLException e) {
-            throw new CrudException(e);
+            throw new CrudException("Error finding coins by material", e);
         }
         return coins;
     }
 
     @Override
     public List<Coin> findByYear(Integer year) {
-        var coins = new ArrayList<Coin>();
-        var connection = dataSource.getConnection();
-        try (var ps = connection.prepareStatement("SELECT * FROM COIN WHERE coin_year = ?")) {
+        List<Coin> coins = new ArrayList<>();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement ps = connection.prepareStatement("SELECT * FROM COIN WHERE COIN_YEAR = ?")) {
+
             ps.setInt(1, year);
-            var rs = ps.executeQuery();
-            while (rs.next()) {
-                JdbcCoin coin = new JdbcCoin();
-                coin.setId(rs.getInt("id"));
-                coin.setCoinName(rs.getString("coin_name"));
-                coin.setOriginCountry(rs.getString("origin_country"));
-                coin.setCoinYear(rs.getInt("coin_year"));
-                coin.setCoinMaterial(rs.getString("coin_material"));
-                coin.setCoinWeight(rs.getBigDecimal("coin_weight"));
-                coin.setCoinDiameter(rs.getBigDecimal("coin_diameter"));
-                coin.setEstimatedValue(rs.getBigDecimal("estimated_value"));
-                coin.setHistoricalSignificance(rs.getString("historical_significance"));
-                coins.add(coin);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    JdbcCoin coin = new JdbcCoin();
+                    coin.setId(rs.getInt("COIN_ID"));
+                    coin.setCoinName(rs.getString("COIN_NAME"));
+                    coin.setOriginCountry(rs.getString("ORIGIN_COUNTRY"));
+                    coin.setCoinYear(rs.getInt("COIN_YEAR"));
+                    coin.setCoinMaterial(rs.getString("COIN_MATERIAL"));
+                    coin.setCoinWeight(rs.getBigDecimal("COIN_WEIGHT"));
+                    coin.setCoinDiameter(rs.getBigDecimal("COIN_DIAMETER"));
+                    coin.setEstimatedValue(rs.getBigDecimal("ESTIMATED_VALUE"));
+                    coin.setHistoricalSignificance(rs.getString("HISTORICAL_SIGNIFICANCE"));
+                    coins.add(coin);
+                }
             }
         } catch (SQLException e) {
-            throw new CrudException(e);
+            throw new CrudException("Error finding coins by year", e);
         }
         return coins;
     }

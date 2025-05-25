@@ -6,9 +6,6 @@ import cat.uvic.teknos.dam.aureus.repositories.UserRepository;
 import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.DataSource;
 import cat.uvic.teknos.dam.aureus.repositories.jdbc.exceptions.CrudException;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Set;
@@ -22,9 +19,16 @@ public class JdbcUserRepository implements UserRepository {
 
     @Override
     public void save(User user) {
-        String sql = "INSERT INTO USER (USERNAME, EMAIL, PASSWORD_HASH) VALUES (?, ?, ?)";
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql)) {
+        String sql = """
+            INSERT INTO USER (USERNAME, EMAIL, PASSWORD_HASH)\s
+            VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE\s
+                USERNAME = VALUES(USERNAME),\s
+                PASSWORD_HASH = VALUES(PASSWORD_HASH)
+           \s""";
+
+        try (var connection = dataSource.getConnection();
+             var ps = connection.prepareStatement(sql)) {
 
             ps.setString(1, user.getUsername());
             ps.setString(2, user.getEmail());
@@ -40,11 +44,10 @@ public class JdbcUserRepository implements UserRepository {
     @Override
     public void delete(User user) {
         String sql = "DELETE FROM USER WHERE USER_ID = ?";
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (var connection = dataSource.getConnection();
+             var ps = connection.prepareStatement(sql)) {
 
             ps.setInt(1, user.getId());
-
             ps.executeUpdate();
 
         } catch (SQLException e) {
@@ -55,69 +58,70 @@ public class JdbcUserRepository implements UserRepository {
     @Override
     public User get(Integer id) {
         String sql = "SELECT * FROM USER WHERE USER_ID = ?";
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (var connection = dataSource.getConnection();
+             var ps = connection.prepareStatement(sql)) {
 
             ps.setInt(1, id);
-            try (ResultSet rs = ps.executeQuery()) {
+
+            try (var rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    User user = new UserImpl();
-                    user.setId(rs.getInt("USER_ID"));
-                    user.setUsername(rs.getString("USERNAME"));
-                    user.setEmail(rs.getString("EMAIL"));
-                    user.setPasswordHash(rs.getString("PASSWORD_HASH"));
-                    return user;
+                    return buildUserFromResultSet(rs);
                 }
-                return null;
             }
 
         } catch (SQLException e) {
             throw new CrudException("Error al obtener el usuario", e);
         }
+        return null;
     }
 
     @Override
     public Set<User> getAll() {
         String sql = "SELECT * FROM USER";
         Set<User> users = new HashSet<>();
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+
+        try (var connection = dataSource.getConnection();
+             var ps = connection.prepareStatement(sql);
+             var rs = ps.executeQuery()) {
 
             while (rs.next()) {
-                User user = new UserImpl();
-                user.setId(rs.getInt("USER_ID"));
-                user.setUsername(rs.getString("USERNAME"));
-                user.setEmail(rs.getString("EMAIL"));
-                user.setPasswordHash(rs.getString("PASSWORD_HASH"));
-                users.add(user);
+                users.add(buildUserFromResultSet(rs));
             }
-            return users;
 
         } catch (SQLException e) {
             throw new CrudException("Error al obtener todos los usuarios", e);
         }
+
+        return users;
     }
 
+    @Override
     public User findByEmail(String email) {
         String sql = "SELECT * FROM USER WHERE EMAIL = ?";
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (var connection = dataSource.getConnection();
+             var ps = connection.prepareStatement(sql)) {
 
             ps.setString(1, email);
-            try (ResultSet rs = ps.executeQuery()) {
+
+            try (var rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    User user = new UserImpl();
-                    user.setId(rs.getInt("USER_ID"));
-                    user.setUsername(rs.getString("USERNAME"));
-                    user.setEmail(rs.getString("EMAIL"));
-                    user.setPasswordHash(rs.getString("PASSWORD_HASH"));
-                    return user;
+                    return buildUserFromResultSet(rs);
                 }
-                return null;
             }
+
         } catch (SQLException e) {
             throw new CrudException("Error al obtener el usuario por email", e);
         }
+
+        return null;
+    }
+
+    private User buildUserFromResultSet(java.sql.ResultSet rs) throws SQLException {
+        User user = new UserImpl();
+        user.setId(rs.getInt("USER_ID"));
+        user.setUsername(rs.getString("USERNAME"));
+        user.setEmail(rs.getString("EMAIL"));
+        user.setPasswordHash(rs.getString("PASSWORD_HASH"));
+        return user;
     }
 }

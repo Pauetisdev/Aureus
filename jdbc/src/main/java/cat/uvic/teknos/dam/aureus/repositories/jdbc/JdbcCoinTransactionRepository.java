@@ -15,9 +15,10 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class JdbcCoinTransactionRepository implements CoinTransactionRepository {
+
     private final DataSource dataSource;
-    private final CoinRepository coinRepository;
-    private final TransactionRepository transactionRepository;
+    private CoinRepository coinRepository;
+    private TransactionRepository transactionRepository;
 
     public JdbcCoinTransactionRepository(DataSource dataSource) {
         this.dataSource = dataSource;
@@ -25,41 +26,52 @@ public class JdbcCoinTransactionRepository implements CoinTransactionRepository 
         this.transactionRepository = transactionRepository;
     }
 
+    public JdbcCoinTransactionRepository(DataSource dataSource, DataSource dataSource1, CoinRepository coinRepository, TransactionRepository transactionRepository) {
+        this.dataSource = dataSource1;
+        this.coinRepository = coinRepository;
+        this.transactionRepository = transactionRepository;
+    }
+
     @Override
     public void save(CoinTransaction value) {
-        var connection = dataSource.getConnection();
-        try (var ps = connection.prepareStatement("INSERT INTO COIN_TRANSACTION (COIN_ID, TRANSACTION_ID) VALUES (?, ?)")) {
+        try (var connection = dataSource.getConnection();
+             var ps = connection.prepareStatement("INSERT INTO COIN_TRANSACTION (COIN_ID, TRANSACTION_ID) VALUES (?, ?)")) {
+
             ps.setInt(1, value.getCoin().getId());
             ps.setInt(2, value.getTransaction().getId());
             ps.executeUpdate();
+
         } catch (SQLException e) {
-            throw new CrudException(e);
+            throw new CrudException("Error saving CoinTransaction", e);
         }
     }
 
     @Override
     public void delete(CoinTransaction value) {
-        var connection = dataSource.getConnection();
-        try (var ps = connection.prepareStatement("DELETE FROM COIN_TRANSACTION WHERE COIN_ID = ? AND TRANSACTION_ID = ?")) {
+        try (var connection = dataSource.getConnection();
+             var ps = connection.prepareStatement("DELETE FROM COIN_TRANSACTION WHERE COIN_ID = ? AND TRANSACTION_ID = ?")) {
+
             ps.setInt(1, value.getCoin().getId());
             ps.setInt(2, value.getTransaction().getId());
             ps.executeUpdate();
+
         } catch (SQLException e) {
-            throw new CrudException(e);
+            throw new CrudException("Error deleting CoinTransaction", e);
         }
     }
 
     @Override
     public CoinTransaction get(Integer id) {
-        throw new UnsupportedOperationException("CoinTransaction no tiene una PK simple.");
+        throw new UnsupportedOperationException("CoinTransaction no tiene una clave primaria simple.");
     }
 
     @Override
     public Set<CoinTransaction> getAll() {
-        var coinTransactions = new HashSet<CoinTransaction>();
-        var connection = dataSource.getConnection();
-        try (var ps = connection.prepareStatement("SELECT * FROM COIN_TRANSACTION")) {
-            var rs = ps.executeQuery();
+        Set<CoinTransaction> coinTransactions = new HashSet<>();
+        try (var connection = dataSource.getConnection();
+             var ps = connection.prepareStatement("SELECT * FROM COIN_TRANSACTION");
+             var rs = ps.executeQuery()) {
+
             while (rs.next()) {
                 Coin coin = coinRepository.get(rs.getInt("COIN_ID"));
                 Transaction transaction = transactionRepository.get(rs.getInt("TRANSACTION_ID"));
@@ -68,8 +80,9 @@ public class JdbcCoinTransactionRepository implements CoinTransactionRepository 
                 coinTransaction.setTransaction(transaction);
                 coinTransactions.add(coinTransaction);
             }
+
         } catch (SQLException e) {
-            throw new CrudException(e);
+            throw new CrudException("Error getting all CoinTransactions", e);
         }
         return coinTransactions;
     }

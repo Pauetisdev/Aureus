@@ -1,6 +1,7 @@
 package cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources;
 
-import java.io.FileInputStream;
+import cat.uvic.teknos.dam.aureus.repositories.jdbc.exceptions.DataSourceException;
+
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -15,21 +16,20 @@ public class SingleConnectionDataSource implements DataSource {
     private final String user;
     private final String password;
 
-    public SingleConnectionDataSource(String server, String driver, Connection connection, String database, String user, String password) {
-        this.server = server;
+    public SingleConnectionDataSource(String driver, String server, String database, String user, String password) {
         this.driver = driver;
-        this.connection = connection;
+        this.server = server;
         this.database = database;
         this.user = user;
         this.password = password;
     }
 
-    public SingleConnectionDataSource(){
+    public SingleConnectionDataSource() {
         var properties = new Properties();
-        try{
-            properties.load(new FileInputStream("/datasource.properties"));
+        try {
+            properties.load(this.getClass().getResourceAsStream("/datasource.properties"));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new DataSourceException("Failed to load datasource.properties", e);
         }
 
         driver = properties.getProperty("driver");
@@ -40,21 +40,20 @@ public class SingleConnectionDataSource implements DataSource {
     }
 
     @Override
-    public Connection getConnection(){
+    public Connection getConnection() {
         if (connection == null) {
             try {
-                connection = DriverManager.getConnection(String.format("jdbc:%s://%s/%s",driver,server,database),
-                user,
-                password);
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
+                Class.forName(driver);
+                connection = DriverManager.getConnection(
+                        String.format("jdbc:%s://%s/%s", driver, server, database),
+                        user,
+                        password
+                );
+            } catch (SQLException | ClassNotFoundException e) {
+                throw new DataSourceException("Failed to get database connection", e);
             }
         }
         return connection;
-    }
-
-    public void setConnection(Connection connection) {
-        this.connection = connection;
     }
 
     public String getDriver() {
@@ -65,12 +64,12 @@ public class SingleConnectionDataSource implements DataSource {
         return server;
     }
 
-    public String getUser() {
-        return user;
-    }
-
     public String getDatabase() {
         return database;
+    }
+
+    public String getUser() {
+        return user;
     }
 
     public String getPassword() {

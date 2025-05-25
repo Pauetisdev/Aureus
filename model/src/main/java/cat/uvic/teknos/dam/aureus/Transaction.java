@@ -1,6 +1,7 @@
 package cat.uvic.teknos.dam.aureus;
 
 import java.sql.Timestamp;
+import java.util.Date;
 import java.util.List;
 
 public interface Transaction {
@@ -10,6 +11,10 @@ public interface Transaction {
     User getBuyer();
     User getSeller();
     List<CoinTransaction> getCoinTransactions();
+    String getType();
+    Date getDate();
+    String getLocation();
+    String getNotes();
 
     void setId(Integer id);
     void setMaterialName(String materialName);
@@ -17,5 +22,9 @@ public interface Transaction {
     void setBuyer(User buyer);
     void setSeller(User seller);
     void setCoinTransactions(java.util.List<CoinTransaction> coinTransactions);
+    void setType(String type);
+    void setDate(Date date);
+    void setLocation(String location);
+    void setNotes(String notes);
 
 }

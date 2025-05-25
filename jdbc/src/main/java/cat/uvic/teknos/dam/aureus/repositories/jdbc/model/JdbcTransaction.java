@@ -5,6 +5,7 @@ import cat.uvic.teknos.dam.aureus.User;
 import cat.uvic.teknos.dam.aureus.CoinTransaction;
 
 import java.sql.Timestamp;
+import java.util.Date;
 import java.util.List;
 
 public class JdbcTransaction implements Transaction {
@@ -73,7 +74,47 @@ public class JdbcTransaction implements Transaction {
     }
 
     @Override
+    public String getType() {
+        return "";
+    }
+
+    @Override
+    public Date getDate() {
+        return null;
+    }
+
+    @Override
+    public String getLocation() {
+        return "";
+    }
+
+    @Override
+    public String getNotes() {
+        return "";
+    }
+
+    @Override
     public void setCoinTransactions(List<CoinTransaction> coinTransactions) {
         this.coinTransactions = coinTransactions;
+    }
+
+    @Override
+    public void setType(String type) {
+
+    }
+
+    @Override
+    public void setDate(Date date) {
+
+    }
+
+    @Override
+    public void setLocation(String location) {
+
+    }
+
+    @Override
+    public void setNotes(String notes) {
+
     }
 }

@@ -1,12 +1,11 @@
 package cat.uvic.teknos.dam.aureus.repositories.jdbc.exceptions;
 
-import java.sql.SQLException;
-
 public class CrudException extends RuntimeException {
-    public CrudException(String message, SQLException e) {
-        super(message);
+    public CrudException(String message, Throwable cause) {
+        super(message, cause);
     }
 
-    public CrudException(SQLException e) {
+    public CrudException(Throwable cause) {
+        super(cause);
     }
 }

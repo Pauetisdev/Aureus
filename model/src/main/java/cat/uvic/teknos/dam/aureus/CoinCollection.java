@@ -11,4 +11,5 @@ public interface CoinCollection {
     void setCoin(Coin coin);
     void setCollection(Collection collection);
 
+
 }
