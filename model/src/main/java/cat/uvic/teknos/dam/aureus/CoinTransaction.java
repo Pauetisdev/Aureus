@@ -7,4 +7,10 @@ public interface CoinTransaction {
     Transaction getTransaction();
     BigDecimal getTransactionPrice();
     String getCurrency();
+
+    void setCoin(Coin coin);
+    void setTransaction(Transaction transaction);
+    void setTransactionPrice(java.math.BigDecimal transactionPrice);
+    void setCurrency(String currency);
+
 }

@@ -1,13 +1,13 @@
-package cat.uvic.teknos.dam.aureus.impl;
+package cat.uvic.teknos.dam.aureus.repositories.jdbc.model;
 
 import cat.uvic.teknos.dam.aureus.Transaction;
 import cat.uvic.teknos.dam.aureus.User;
 import cat.uvic.teknos.dam.aureus.CoinTransaction;
+
 import java.sql.Timestamp;
 import java.util.List;
 
-public class TransactionImpl implements Transaction {
-
+public class JdbcTransaction implements Transaction {
     private Integer id;
     private String materialName;
     private Timestamp transactionDate;
@@ -15,20 +15,14 @@ public class TransactionImpl implements Transaction {
     private User seller;
     private List<CoinTransaction> coinTransactions;
 
-    public TransactionImpl() {
-        this.id = id;
-        this.materialName = materialName;
-        this.transactionDate = transactionDate;
-        this.buyer = buyer;
-        this.seller = seller;
-        this.coinTransactions = coinTransactions;
-    }
+    public JdbcTransaction() {}
 
     @Override
     public Integer getId() {
         return id;
     }
 
+    @Override
     public void setId(Integer id) {
         this.id = id;
     }
@@ -38,6 +32,7 @@ public class TransactionImpl implements Transaction {
         return materialName;
     }
 
+    @Override
     public void setMaterialName(String materialName) {
         this.materialName = materialName;
     }
@@ -47,6 +42,7 @@ public class TransactionImpl implements Transaction {
         return transactionDate;
     }
 
+    @Override
     public void setTransactionDate(Timestamp transactionDate) {
         this.transactionDate = transactionDate;
     }
@@ -56,6 +52,7 @@ public class TransactionImpl implements Transaction {
         return buyer;
     }
 
+    @Override
     public void setBuyer(User buyer) {
         this.buyer = buyer;
     }
@@ -65,6 +62,7 @@ public class TransactionImpl implements Transaction {
         return seller;
     }
 
+    @Override
     public void setSeller(User seller) {
         this.seller = seller;
     }
@@ -74,6 +72,7 @@ public class TransactionImpl implements Transaction {
         return coinTransactions;
     }
 
+    @Override
     public void setCoinTransactions(List<CoinTransaction> coinTransactions) {
         this.coinTransactions = coinTransactions;
     }

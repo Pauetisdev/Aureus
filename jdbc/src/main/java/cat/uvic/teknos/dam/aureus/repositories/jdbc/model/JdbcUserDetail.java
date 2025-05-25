@@ -1,24 +1,25 @@
-package cat.uvic.teknos.dam.aureus.impl;
+package cat.uvic.teknos.dam.aureus.repositories.jdbc.model;
 
-import cat.uvic.teknos.dam.aureus.UserDetail;
 import cat.uvic.teknos.dam.aureus.User;
+import cat.uvic.teknos.dam.aureus.UserDetail;
+
 import java.sql.Date;
 
-public class UserDetailImpl implements UserDetail {
+public class JdbcUserDetail implements UserDetail {
 
-    private int id;
+    private Integer id;
     private Date birthday;
     private String phone;
     private String gender;
     private String nationality;
     private User user;
 
-    public UserDetailImpl() {}
-
     @Override
     public Integer getId() {
         return id;
     }
+
+    @Override
     public void setId(int id) {
         this.id = id;
     }
@@ -27,6 +28,8 @@ public class UserDetailImpl implements UserDetail {
     public Date getBirthday() {
         return birthday;
     }
+
+    @Override
     public void setBirthday(Date birthday) {
         this.birthday = birthday;
     }
@@ -35,6 +38,8 @@ public class UserDetailImpl implements UserDetail {
     public String getPhone() {
         return phone;
     }
+
+    @Override
     public void setPhone(String phone) {
         this.phone = phone;
     }
@@ -43,6 +48,8 @@ public class UserDetailImpl implements UserDetail {
     public String getGender() {
         return gender;
     }
+
+    @Override
     public void setGender(String gender) {
         this.gender = gender;
     }
@@ -51,6 +58,8 @@ public class UserDetailImpl implements UserDetail {
     public String getNationality() {
         return nationality;
     }
+
+    @Override
     public void setNationality(String nationality) {
         this.nationality = nationality;
     }
@@ -59,6 +68,8 @@ public class UserDetailImpl implements UserDetail {
     public User getUser() {
         return user;
     }
+
+    @Override
     public void setUser(User user) {
         this.user = user;
     }

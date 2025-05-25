@@ -9,14 +9,19 @@ public interface User {
     String getEmail();
     String getPasswordHash();
     Timestamp getJoinDate();
-
-    // Relación 1:1 con UserDetail
     UserDetail getUserDetail();
-
-    // Relación 1:N con Collection
     List<Collection> getCollections();
-
-    // Relaciones como comprador/vendedor
     List<Transaction> getBuyerTransactions();
     List<Transaction> getSellerTransactions();
+
+    void setId(Integer id);
+    void setUsername(String username);
+    void setEmail(String email);
+    void setPasswordHash(String passwordHash);
+    void setJoinDate(java.sql.Timestamp joinDate);
+    void setUserDetail(UserDetail userDetail);
+    void setCollections(java.util.List<Collection> collections);
+    void setBuyerTransactions(java.util.List<Transaction> buyerTransactions);
+    void setSellerTransactions(java.util.List<Transaction> sellerTransactions);
+
 }

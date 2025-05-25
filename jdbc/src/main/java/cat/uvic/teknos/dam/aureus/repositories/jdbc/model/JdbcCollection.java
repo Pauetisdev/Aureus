@@ -1,4 +1,4 @@
-package cat.uvic.teknos.dam.aureus.impl;
+package cat.uvic.teknos.dam.aureus.repositories.jdbc.model;
 
 import cat.uvic.teknos.dam.aureus.CoinCollection;
 import cat.uvic.teknos.dam.aureus.Collection;
@@ -6,15 +6,13 @@ import cat.uvic.teknos.dam.aureus.User;
 
 import java.util.List;
 
-public class CollectionImpl implements Collection {
+public class JdbcCollection implements Collection {
 
     private Integer id;
     private String collectionName;
     private String description;
     private User user;
     private List<CoinCollection> coinCollections;
-
-    public CollectionImpl() {}
 
     @Override
     public Integer getId() {

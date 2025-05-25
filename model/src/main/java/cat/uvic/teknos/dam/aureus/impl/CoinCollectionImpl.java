@@ -8,15 +8,10 @@ public class CoinCollectionImpl implements CoinCollection {
 
     private Integer coinId;
     private Integer collectionId;
-    private Coin coin; // Relación N:1 con Coin
-    private Collection collection; // Relación N:1 con Collection
+    private Coin coin;
+    private Collection collection;
 
-    public CoinCollectionImpl(Integer coinId, Integer collectionId, Coin coin, Collection collection) {
-        this.coinId = coinId;
-        this.collectionId = collectionId;
-        this.coin = coin;
-        this.collection = collection;
-    }
+    public CoinCollectionImpl() {}
 
     @Override
     public Integer getCoinId() {

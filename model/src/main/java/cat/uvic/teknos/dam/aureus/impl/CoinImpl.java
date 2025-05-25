@@ -2,6 +2,7 @@ package cat.uvic.teknos.dam.aureus.impl;
 
 import cat.uvic.teknos.dam.aureus.Coin;
 import cat.uvic.teknos.dam.aureus.CoinCollection;
+import java.math.BigDecimal;
 
 public class CoinImpl implements Coin {
 
@@ -9,32 +10,29 @@ public class CoinImpl implements Coin {
     private String coinName;
     private Integer coinYear;
     private String coinMaterial;
-    private Double coinWeight;
-    private Double coinDiameter;
-    private Double estimatedValue;
+    private BigDecimal coinWeight;
+    private BigDecimal coinDiameter;
+    private BigDecimal estimatedValue;
     private String originCountry;
     private String historicalSignificance;
     private CoinCollection collection;
 
-    // Constructor
-    public CoinImpl(Integer id, String coinName, Integer coinYear, String coinMaterial,
-                    Double coinWeight, Double coinDiameter, Double estimatedValue,
-                    String originCountry, String historicalSignificance, CoinCollection collection) {
-        if (id == null || coinName == null || coinMaterial == null || originCountry == null || historicalSignificance == null) {
-            throw new IllegalArgumentException("Cap camp pot ser null.");
-        }
-        this.id = id;
-        this.coinName = coinName;
-        this.coinYear = coinYear;
-        this.coinMaterial = coinMaterial;
-        this.coinWeight = coinWeight;
-        this.coinDiameter = coinDiameter;
-        this.estimatedValue = estimatedValue;
-        this.originCountry = originCountry;
-        this.historicalSignificance = historicalSignificance;
-        this.collection = collection;
-    }
+    public CoinImpl() {}
 
+    public CoinImpl(Integer id, String coinName, Integer coinYear, String coinMaterial,
+                    BigDecimal coinWeight, BigDecimal coinDiameter, BigDecimal estimatedValue,
+                    String originCountry, String historicalSignificance, CoinCollection collection) {
+        setId(id);
+        setCoinName(coinName);
+        setCoinYear(coinYear);
+        setCoinMaterial(coinMaterial);
+        setCoinWeight(coinWeight);
+        setCoinDiameter(coinDiameter);
+        setEstimatedValue(estimatedValue);
+        setOriginCountry(originCountry);
+        setHistoricalSignificance(historicalSignificance);
+        setCollection(collection);
+    }
 
     @Override
     public Integer getId() {
@@ -42,12 +40,8 @@ public class CoinImpl implements Coin {
     }
 
     public void setId(Integer id) {
-        if (id == null) {
-            throw new IllegalArgumentException("id no puede ser null");
-        }
         this.id = id;
     }
-
 
     @Override
     public String getCoinName() {
@@ -55,12 +49,8 @@ public class CoinImpl implements Coin {
     }
 
     public void setCoinName(String coinName) {
-        if (coinName == null) {
-            throw new IllegalArgumentException("coinName no puede ser null");
-        }
         this.coinName = coinName;
     }
-
 
     @Override
     public Integer getCoinYear() {
@@ -71,49 +61,41 @@ public class CoinImpl implements Coin {
         this.coinYear = coinYear;
     }
 
-
     @Override
     public String getCoinMaterial() {
         return coinMaterial;
     }
 
     public void setCoinMaterial(String coinMaterial) {
-        if (coinMaterial == null) {
-            throw new IllegalArgumentException("coinMaterial no puede ser null");
-        }
         this.coinMaterial = coinMaterial;
     }
 
-
     @Override
-    public Double getCoinWeight() {
+    public BigDecimal getCoinWeight() {
         return coinWeight;
     }
 
-    public void setCoinWeight(Double coinWeight) {
+    public void setCoinWeight(BigDecimal coinWeight) {
         this.coinWeight = coinWeight;
     }
 
-
     @Override
-    public Double getCoinDiameter() {
+    public BigDecimal getCoinDiameter() {
         return coinDiameter;
     }
 
-    public void setCoinDiameter(Double coinDiameter) {
+    public void setCoinDiameter(BigDecimal coinDiameter) {
         this.coinDiameter = coinDiameter;
     }
 
-
     @Override
-    public Double getEstimatedValue() {
+    public BigDecimal getEstimatedValue() {
         return estimatedValue;
     }
 
-    public void setEstimatedValue(Double estimatedValue) {
+    public void setEstimatedValue(BigDecimal estimatedValue) {
         this.estimatedValue = estimatedValue;
     }
-
 
     @Override
     public String getOriginCountry() {
@@ -121,12 +103,8 @@ public class CoinImpl implements Coin {
     }
 
     public void setOriginCountry(String originCountry) {
-        if (originCountry == null) {
-            throw new IllegalArgumentException("originCountry no puede ser null");
-        }
         this.originCountry = originCountry;
     }
-
 
     @Override
     public String getHistoricalSignificance() {
@@ -134,12 +112,8 @@ public class CoinImpl implements Coin {
     }
 
     public void setHistoricalSignificance(String historicalSignificance) {
-        if (historicalSignificance == null) {
-            throw new IllegalArgumentException("historicalSignificance no puede ser null");
-        }
         this.historicalSignificance = historicalSignificance;
     }
-
 
     @Override
     public CoinCollection getCollection() {

@@ -7,13 +7,15 @@ public interface Transaction {
     Integer getId();
     String getMaterialName();
     Timestamp getTransactionDate();
-
-    // Relación N:1 con User (comprador)
     User getBuyer();
-
-    // Relación N:1 con User (vendedor)
     User getSeller();
-
-    // Relación 1:N con CoinTransaction
     List<CoinTransaction> getCoinTransactions();
+
+    void setId(Integer id);
+    void setMaterialName(String materialName);
+    void setTransactionDate(java.sql.Timestamp transactionDate);
+    void setBuyer(User buyer);
+    void setSeller(User seller);
+    void setCoinTransactions(java.util.List<CoinTransaction> coinTransactions);
+
 }

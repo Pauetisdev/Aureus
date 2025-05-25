@@ -1,4 +1,4 @@
-package cat.uvic.teknos.dam.aureus.datasources;
+package cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources;
 
 import java.sql.Connection;
 
