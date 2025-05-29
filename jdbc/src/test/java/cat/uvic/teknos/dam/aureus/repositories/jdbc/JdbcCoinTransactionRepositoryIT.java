@@ -22,93 +22,129 @@ class JdbcCoinTransactionRepositoryIT {
     private JdbcCoinRepository coinRepository;
     private JdbcTransactionRepository transactionRepository;
     private JdbcCoinTransactionRepository coinTransactionRepository;
+    private JdbcUserRepository userRepository;
 
     private int coinId;
     private int transactionId;
 
     @BeforeAll
     void setupDatabase() throws Exception {
-        dataSource = new SingleConnectionDataSource(
-                "org.h2.Driver",
-                "jdbc:h2:mem:",
-                "testdb;DB_CLOSE_DELAY=-1",
-                "sa",
-                ""
-        );
+        // Parámetros de conexión H2 en memoria
+        String driver = "org.h2.Driver";
+        String server = "jdbc:h2:mem:";
+        String database = "testdb;DB_CLOSE_DELAY=-1";
+        String user = "sa";
+        String password = "";
+
+        // Inicializar dataSource
+        dataSource = new SingleConnectionDataSource(driver, server, database, user, password);
 
         try (var conn = dataSource.getConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute("""
-                    CREATE TABLE COIN (
-                        ID INT AUTO_INCREMENT PRIMARY KEY,
-                        NAME VARCHAR(255),
-                        YEAR INT,
-                        MATERIAL VARCHAR(255),
-                        COIN_WEIGHT DECIMAL,
-                        COIN_DIAMETER DECIMAL,
-                        ESTIMATED_VALUE DECIMAL,
-                        ORIGIN_COUNTRY VARCHAR(255),
-                        HISTORICAL_SIGNIFICANCE VARCHAR(255)
-                    );
-                    """);
-
-            // Cambio nombre tabla de TRANSACTION a TRANSACTIONS para evitar palabra reservada
-            stmt.execute("""
-                    CREATE TABLE TRANSACTIONS (
-                        ID INT AUTO_INCREMENT PRIMARY KEY,
-                        TYPE VARCHAR(255),
-                        DATE DATE,
-                        LOCATION VARCHAR(255),
-                        NOTES VARCHAR(255)
-                    );
-                    """);
+                CREATE TABLE USER (
+                    USER_ID INT AUTO_INCREMENT PRIMARY KEY,
+                    NAME VARCHAR(100)
+                );
+            """);
 
             stmt.execute("""
-                    CREATE TABLE COIN_TRANSACTION (
-                        COIN_ID INT,
-                        TRANSACTION_ID INT,
-                        PRIMARY KEY (COIN_ID, TRANSACTION_ID),
-                        FOREIGN KEY (COIN_ID) REFERENCES COIN(ID),
-                        FOREIGN KEY (TRANSACTION_ID) REFERENCES TRANSACTIONS(ID)
-                    );
-                    """);
+                CREATE TABLE COIN (
+                    COIN_ID INT AUTO_INCREMENT PRIMARY KEY,
+                    COIN_NAME VARCHAR(100) NOT NULL,
+                    COIN_YEAR INT NOT NULL,
+                    COIN_MATERIAL VARCHAR(50) NOT NULL,
+                    COIN_WEIGHT DECIMAL(10,2) NOT NULL,
+                    COIN_DIAMETER DECIMAL(10,2) NOT NULL,
+                    ESTIMATED_VALUE DECIMAL(10,2) NOT NULL,
+                    ORIGIN_COUNTRY VARCHAR(50) NOT NULL,
+                    HISTORICAL_SIGNIFICANCE TEXT
+                );
+            """);
+
+            stmt.execute("""
+                CREATE TABLE TRANSACTION (
+                    TRANSACTION_ID INT AUTO_INCREMENT PRIMARY KEY,
+                    TRANSACTION_DATE TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    BUYER_ID INT NOT NULL,
+                    SELLER_ID INT NOT NULL,
+                    FOREIGN KEY (BUYER_ID) REFERENCES USER(USER_ID),
+                    FOREIGN KEY (SELLER_ID) REFERENCES USER(USER_ID)
+                );
+            """);
+
+            stmt.execute("""
+                CREATE TABLE COIN_TRANSACTION (
+                    COIN_ID INT,
+                    TRANSACTION_ID INT,
+                    PRIMARY KEY (COIN_ID, TRANSACTION_ID),
+                    FOREIGN KEY (COIN_ID) REFERENCES COIN(COIN_ID),
+                    FOREIGN KEY (TRANSACTION_ID) REFERENCES TRANSACTION(TRANSACTION_ID)
+                );
+            """);
         }
 
         coinRepository = new JdbcCoinRepository(dataSource);
-        transactionRepository = new JdbcTransactionRepository(dataSource);
+        userRepository = new JdbcUserRepository(dataSource);
+        transactionRepository = new JdbcTransactionRepository(dataSource, userRepository);
         coinTransactionRepository = new JdbcCoinTransactionRepository(dataSource);
     }
 
     @BeforeEach
-    void insertData() {
+    void insertData() throws Exception {
+        // Crear y guardar moneda
         CoinImpl coin = new CoinImpl();
         coin.setCoinName("Denario");
-        coin.setCoinYear(100); // ejemplo de año
+        coin.setCoinYear(100);
         coin.setOriginCountry("Roma");
         coin.setCoinMaterial("Argent");
         coin.setCoinWeight(new BigDecimal("3.5"));
         coin.setCoinDiameter(new BigDecimal("19.0"));
         coin.setEstimatedValue(new BigDecimal("500"));
-        coin.setHistoricalSignificance("Moneda romana antigua");
+        coin.setHistoricalSignificance("Moneda romana antiga");
 
         coinRepository.save(coin);
         coinId = coin.getId();
 
-        TransactionImpl transaction = new TransactionImpl();
-        transaction.setType("Compra");
-        transaction.setDate(java.sql.Date.valueOf("2024-01-01"));
-        transaction.setLocation("Barcino");
-        transaction.setNotes("Compra mercat antic");
+        try (var conn = dataSource.getConnection()) {
+            int buyerId;
+            int sellerId;
 
-        transactionRepository.save(transaction);
-        transactionId = transaction.getId();
+            try (var stmt = conn.prepareStatement(
+                    "INSERT INTO USER (NAME) VALUES (?), (?)", Statement.RETURN_GENERATED_KEYS)) {
+                stmt.setString(1, "Comprador");
+                stmt.setString(2, "Venedor");
+                stmt.executeUpdate();
+
+                try (var rs = stmt.getGeneratedKeys()) {
+                    rs.next();
+                    buyerId = rs.getInt(1);
+                    rs.next();
+                    sellerId = rs.getInt(1);
+                }
+            }
+
+            try (var stmt = conn.prepareStatement(
+                    "INSERT INTO TRANSACTION (BUYER_ID, SELLER_ID) VALUES (?, ?)",
+                    Statement.RETURN_GENERATED_KEYS)) {
+                stmt.setInt(1, buyerId);
+                stmt.setInt(2, sellerId);
+                stmt.executeUpdate();
+
+                try (var rs = stmt.getGeneratedKeys()) {
+                    rs.next();
+                    transactionId = rs.getInt(1);
+                }
+            }
+        }
     }
 
     @AfterEach
     void clearTables() throws Exception {
         try (var conn = dataSource.getConnection(); Statement stmt = conn.createStatement()) {
             stmt.executeUpdate("DELETE FROM COIN_TRANSACTION");
+            stmt.executeUpdate("DELETE FROM TRANSACTION");
             stmt.executeUpdate("DELETE FROM COIN");
-            stmt.executeUpdate("DELETE FROM TRANSACTIONS");
+            stmt.executeUpdate("DELETE FROM USER");
         }
     }
 

@@ -6,7 +6,6 @@ public interface RepositoryFactory {
     TransactionRepository getTransactionRepository();
     UserRepository getUserRepository();
     UserDetailRepository getUserDetailRepository();
-
     CoinCollectionRepository getCoinCollectionRepository();
     CoinTransactionRepository getCoinTransactionRepository();
 }

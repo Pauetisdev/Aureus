@@ -13,6 +13,7 @@ import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.SingleConnection
 
 public class JdbcRepositoryFactory implements RepositoryFactory {
     private final DataSource dataSource;
+    private UserRepository userRepository;
 
     public JdbcRepositoryFactory() {
         this.dataSource = new SingleConnectionDataSource();
@@ -40,7 +41,7 @@ public class JdbcRepositoryFactory implements RepositoryFactory {
 
     @Override
     public TransactionRepository getTransactionRepository() {
-        return new JdbcTransactionRepository(dataSource);
+        return new JdbcTransactionRepository(dataSource, userRepository);
     }
 
 

@@ -3,7 +3,6 @@ package cat.uvic.teknos.dam.aureus.repositories.jdbc;
 import cat.uvic.teknos.dam.aureus.Transaction;
 import cat.uvic.teknos.dam.aureus.User;
 import cat.uvic.teknos.dam.aureus.impl.TransactionImpl;
-import cat.uvic.teknos.dam.aureus.impl.UserImpl;
 import cat.uvic.teknos.dam.aureus.repositories.UserRepository;
 import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.DataSource;
 import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.SingleConnectionDataSource;
@@ -20,7 +19,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class JdbcTransactionRepositoryIT {
 
-    private DataSource dataSource;
     private JdbcTransactionRepository transactionRepository;
     private UserRepository userRepository;
 
@@ -34,7 +32,7 @@ public class JdbcTransactionRepositoryIT {
         String password = "";
 
         // Inicializamos SingleConnectionDataSource
-        dataSource = new SingleConnectionDataSource(driver, server, database, user, password);
+        DataSource dataSource = new SingleConnectionDataSource(driver, server, database, user, password);
 
         try (Connection conn = dataSource.getConnection(); Statement st = conn.createStatement()) {
             // Crear tabla USER con columnas reales
@@ -48,7 +46,6 @@ public class JdbcTransactionRepositoryIT {
             st.execute("CREATE TABLE TRANSACTION (" +
                     "TRANSACTION_ID INT PRIMARY KEY AUTO_INCREMENT, " +
                     "TRANSACTION_DATE TIMESTAMP, " +
-                    "MATERIAL_NAME VARCHAR(255), " +
                     "BUYER_ID INT, " +
                     "SELLER_ID INT, " +
                     "FOREIGN KEY (BUYER_ID) REFERENCES USER(USER_ID), " +
@@ -70,7 +67,6 @@ public class JdbcTransactionRepositoryIT {
 
         Transaction tx = new TransactionImpl();
         tx.setTransactionDate(new Timestamp(System.currentTimeMillis()));
-        tx.setMaterialName("Aureus");
         tx.setBuyer(buyer);
         tx.setSeller(seller);
 
@@ -80,7 +76,6 @@ public class JdbcTransactionRepositoryIT {
         assertFalse(allTransactions.isEmpty(), "Debe haber al menos una transacción guardada");
 
         Transaction fetched = allTransactions.iterator().next();
-        assertEquals("Aureus", fetched.getMaterialName());
         assertEquals(1, fetched.getBuyer().getId());
         assertEquals(2, fetched.getSeller().getId());
     }
