@@ -4,9 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "COLLECTION")
@@ -19,18 +18,16 @@ public class JpaCollection {
     @Column(name = "COLLECTION_ID")
     private int id;
 
-    @Column(name = "NAME")
-    private String name;
+    @Column(name = "COLLECTION_NAME", nullable = false)
+    private String collectionName;
 
-    @ManyToOne
+    @Column(name = "DESCRIPTION", length = 1000)
+    private String description;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "USER_ID")
     private JpaUser user;
 
-    @ManyToMany
-    @JoinTable(
-            name = "COINS_COLLECTION",
-            joinColumns = @JoinColumn(name = "COLLECTION_ID"),
-            inverseJoinColumns = @JoinColumn(name = "COIN_ID")
-    )
-    private Set<JpaCoin> coins = new HashSet<>();
+    @OneToMany(mappedBy = "collection", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<JpaCoin> coins = new ArrayList<>();
 }

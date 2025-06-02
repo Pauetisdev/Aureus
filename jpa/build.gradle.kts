@@ -9,6 +9,8 @@ plugins {
 dependencies {
     implementation(project(":model"))
     implementation(project(":repositories"))
+    implementation(project(":jdbc"))
+
 
     implementation("jakarta.persistence:jakarta.persistence-api:3.2.0")
     implementation("org.hibernate.orm:hibernate-core:7.0.0.Final")

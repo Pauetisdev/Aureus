@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "USER_DETAIL")
@@ -12,16 +13,23 @@ import lombok.ToString;
 @ToString(exclude = "user")
 public class JpaUserDetail {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "USER_DETAIL_ID")
+    @Column(name = "USER_ID")
     private int id;
 
-    @Column(name = "ADDRESS")
-    private String address;
+    @OneToOne(fetch = FetchType.LAZY)
+    @MapsId
+    @JoinColumn(name = "USER_ID")
+    private JpaUser user;
+
+    @Column(name = "BIRTHDATE")
+    private LocalDate birthdate;
 
     @Column(name = "PHONE")
     private String phone;
 
-    @OneToOne(mappedBy = "userDetail")
-    private JpaUser user;
+    @Column(name = "GENDER")
+    private String gender;
+
+    @Column(name = "NATIONALITY")
+    private String nationality;
 }

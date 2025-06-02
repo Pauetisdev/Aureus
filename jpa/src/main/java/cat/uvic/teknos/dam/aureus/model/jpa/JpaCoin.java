@@ -4,50 +4,52 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-
 import java.math.BigDecimal;
-import java.util.HashSet;
-import java.util.Set;
-
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "COIN")
 @Data
-@EqualsAndHashCode(exclude = {"collections", "coinTransactions"})
-@ToString(exclude = {"collections", "coinTransactions"})
+
+// @EqualsAndHashCode, @ToString : Para evitar recursion infinita
+@EqualsAndHashCode(exclude = {"collection", "coinTransactions"})
+@ToString(exclude = {"collection", "coinTransactions"})
+
 public class JpaCoin {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "COIN_ID")
     private int id;
 
-    @Column(name = "COIN_NAME")
+    @Column(name = "COIN_NAME", nullable = false)
     private String coinName;
 
     @Column(name = "COIN_YEAR")
-    private int coinYear;
+    private Integer coinYear;
 
     @Column(name = "COIN_MATERIAL")
     private String coinMaterial;
 
-    @Column(name = "COIN_WEIGHT")
+    @Column(name = "COIN_WEIGHT", precision = 10, scale = 2)
     private BigDecimal coinWeight;
 
-    @Column(name = "COIN_DIAMETER")
+    @Column(name = "COIN_DIAMETER", precision = 10, scale = 2)
     private BigDecimal coinDiameter;
 
-    @Column(name = "ESTIMATED_VALUE")
+    @Column(name = "ESTIMATED_VALUE", precision = 15, scale = 2)
     private BigDecimal estimatedValue;
 
     @Column(name = "ORIGIN_COUNTRY")
     private String originCountry;
 
-    @Column(name = "HISTORICAL_SIGNIFICANCE")
+    @Column(name = "HISTORICAL_SIGNIFICANCE", length = 1000)
     private String historicalSignificance;
 
-    @ManyToMany(mappedBy = "coins")
-    private Set<JpaCollection> collections = new HashSet<>();
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "COLLECTION_ID")
+    private JpaCollection collection;
 
-    @OneToMany(mappedBy = "coin")
-    private Set<JpaCoinTransaction> coinTransactions = new HashSet<>();
+    @OneToMany(mappedBy = "coin", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<JpaCoinTransaction> coinTransactions = new ArrayList<>();
 }

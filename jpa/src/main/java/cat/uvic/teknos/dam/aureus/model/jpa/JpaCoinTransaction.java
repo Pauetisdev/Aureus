@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "COIN_TRANSACTION")
@@ -13,7 +13,7 @@ import lombok.ToString;
 @ToString(exclude = {"coin", "transaction"})
 public class JpaCoinTransaction {
     @EmbeddedId
-    private JpaCoinTransactionId id;
+    private CoinTransactionId id;
 
     @ManyToOne
     @MapsId("coinId")
@@ -24,4 +24,10 @@ public class JpaCoinTransaction {
     @MapsId("transactionId")
     @JoinColumn(name = "TRANSACTION_ID")
     private JpaTransaction transaction;
+
+    @Column(name = "TRANSACTION_PRICE")
+    private BigDecimal transactionPrice;
+
+    @Column(name = "CURRENCY")
+    private String currency;
 }
