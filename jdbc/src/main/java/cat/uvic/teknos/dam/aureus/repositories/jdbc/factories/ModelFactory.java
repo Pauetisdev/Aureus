@@ -9,13 +9,7 @@ import cat.uvic.teknos.dam.aureus.CoinCollection;
 import cat.uvic.teknos.dam.aureus.CoinTransaction;
 
 // JDBC CLASSES
-import cat.uvic.teknos.dam.aureus.repositories.jdbc.model.JdbcUser;
-import cat.uvic.teknos.dam.aureus.repositories.jdbc.model.JdbcUserDetail;
-import cat.uvic.teknos.dam.aureus.repositories.jdbc.model.JdbcCollection;
-import cat.uvic.teknos.dam.aureus.repositories.jdbc.model.JdbcCoin;
-import cat.uvic.teknos.dam.aureus.repositories.jdbc.model.JdbcTransaction;
-import cat.uvic.teknos.dam.aureus.repositories.jdbc.model.JdbcCoinCollection;
-import cat.uvic.teknos.dam.aureus.repositories.jdbc.model.JdbcCoinTransaction;
+import cat.uvic.teknos.dam.aureus.repositories.jdbc.model.*;
 
 public class ModelFactory {
 

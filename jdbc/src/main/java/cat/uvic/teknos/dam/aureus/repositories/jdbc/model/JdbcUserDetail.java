@@ -3,12 +3,12 @@ package cat.uvic.teknos.dam.aureus.repositories.jdbc.model;
 import cat.uvic.teknos.dam.aureus.User;
 import cat.uvic.teknos.dam.aureus.UserDetail;
 
-import java.sql.Date;
+import java.time.LocalDate;
 
 public class JdbcUserDetail implements UserDetail {
 
     private Integer id;
-    private Date birthday;
+    private LocalDate birthdate;
     private String phone;
     private String gender;
     private String nationality;
@@ -20,18 +20,18 @@ public class JdbcUserDetail implements UserDetail {
     }
 
     @Override
-    public void setId(int id) {
+    public void setId(Integer id) {
         this.id = id;
     }
 
     @Override
-    public Date getBirthday() {
-        return birthday;
+    public LocalDate getBirthdate() {
+        return birthdate;
     }
 
     @Override
-    public void setBirthday(Date birthday) {
-        this.birthday = birthday;
+    public void setBirthdate(LocalDate birthdate) {
+        this.birthdate = birthdate;
     }
 
     @Override

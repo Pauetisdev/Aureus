@@ -1,9 +1,10 @@
 package cat.uvic.teknos.dam.aureus.impl;
 
-import cat.uvic.teknos.dam.aureus.CoinCollection;
 import cat.uvic.teknos.dam.aureus.Collection;
+import cat.uvic.teknos.dam.aureus.CoinCollection;
 import cat.uvic.teknos.dam.aureus.User;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class CollectionImpl implements Collection {
@@ -14,7 +15,9 @@ public class CollectionImpl implements Collection {
     private User user;
     private List<CoinCollection> coinCollections;
 
-    public CollectionImpl() {}
+    public CollectionImpl() {
+        this.coinCollections = new ArrayList<>();
+    }
 
     @Override
     public Integer getId() {
@@ -22,7 +25,7 @@ public class CollectionImpl implements Collection {
     }
 
     @Override
-    public void setId(int id) {
+    public void setId(Integer id) {
         this.id = id;
     }
 
@@ -63,6 +66,6 @@ public class CollectionImpl implements Collection {
 
     @Override
     public void setCoinCollections(List<CoinCollection> coinCollections) {
-        this.coinCollections = coinCollections;
+        this.coinCollections = coinCollections != null ? coinCollections : new ArrayList<>();
     }
 }

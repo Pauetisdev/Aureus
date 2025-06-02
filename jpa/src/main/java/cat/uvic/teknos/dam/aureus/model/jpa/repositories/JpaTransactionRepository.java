@@ -8,7 +8,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
 import jakarta.persistence.TypedQuery;
 
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -96,17 +96,17 @@ public class JpaTransactionRepository implements Repository<Integer, JpaTransact
         }
     }
 
-    public List<JpaTransaction> findByDateRange(Timestamp start, Timestamp end) {
+    public List<JpaTransaction> findByDateRange(LocalDateTime start, LocalDateTime end) {
         if (start == null || end == null) {
             throw new InvalidDataException("Start and end timestamps cannot be null");
         }
-        if (start.after(end)) {
+        if (start.isAfter(end)) {
             throw new InvalidDataException("Start timestamp must be before end timestamp");
         }
 
         try {
             TypedQuery<JpaTransaction> query = entityManager.createQuery(
-                    "SELECT t FROM JpaTransaction t WHERE t.date BETWEEN :start AND :end ORDER BY t.date",
+                    "SELECT t FROM JpaTransaction t WHERE t.transactionDate BETWEEN :start AND :end ORDER BY t.transactionDate",
                     JpaTransaction.class);
             query.setParameter("start", start);
             query.setParameter("end", end);

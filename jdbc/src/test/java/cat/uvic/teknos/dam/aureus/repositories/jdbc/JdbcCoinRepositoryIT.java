@@ -16,7 +16,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class JdbcCoinRepositoryTest {
+class JdbcCoinRepositoryIT {
 
     private static CoinRepository repository;
     private static Connection connection;

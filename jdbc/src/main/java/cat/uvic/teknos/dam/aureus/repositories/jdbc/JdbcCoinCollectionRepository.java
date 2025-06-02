@@ -23,7 +23,7 @@ public class JdbcCoinCollectionRepository implements CoinCollectionRepository {
     private CoinRepository coinRepository = null;
     private CollectionRepository collectionRepository = null;
 
-    // Constructor corregido para recibir las dependencias
+
     public JdbcCoinCollectionRepository(DataSource dataSource) {
         throw new InvalidDataException("DataSource, CoinRepository, and CollectionRepository cannot be null");
     }

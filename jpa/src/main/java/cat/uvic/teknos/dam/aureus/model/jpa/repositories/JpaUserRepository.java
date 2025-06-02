@@ -80,7 +80,7 @@ public class JpaUserRepository implements UserRepository {
             if (user == null) {
                 throw new EntityNotFoundException("User with ID " + id + " not found");
             }
-            return (User) user;
+            return user;
         } catch (EntityNotFoundException e) {
             throw e;
         } catch (Exception e) {
@@ -92,11 +92,7 @@ public class JpaUserRepository implements UserRepository {
     public Set<User> getAll() {
         try {
             List<JpaUser> jpaUsers = entityManager.createQuery("SELECT u FROM JpaUser u", JpaUser.class).getResultList();
-            Set<User> users = new HashSet<>();
-            for (JpaUser jpaUser : jpaUsers) {
-                users.add((User) jpaUser);
-            }
-            return users;
+            return new HashSet<>(jpaUsers);
         } catch (Exception e) {
             throw new RepositoryException("Error retrieving all users", e);
         }
@@ -112,7 +108,7 @@ public class JpaUserRepository implements UserRepository {
             TypedQuery<JpaUser> query = entityManager.createQuery(
                     "SELECT u FROM JpaUser u WHERE u.email = :email", JpaUser.class);
             query.setParameter("email", email);
-            return (User) query.getSingleResult();
+            return query.getSingleResult();
         } catch (NoResultException e) {
             throw new EntityNotFoundException("User with email '" + email + "' not found");
         } catch (Exception e) {

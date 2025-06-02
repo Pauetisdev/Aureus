@@ -1,20 +1,23 @@
 package cat.uvic.teknos.dam.aureus;
 
-import java.sql.Date;
+import java.time.LocalDate;
 
 public interface UserDetail {
     Integer getId();
-    Date getBirthday();
+    void setId(Integer id);
+
+    LocalDate getBirthdate();
+    void setBirthdate(LocalDate birthdate);
+
     String getPhone();
-    String getGender();
-    String getNationality();
-    User getUser();
-
-    void setId(int id);
-    void setBirthday(java.sql.Date birthday);
     void setPhone(String phone);
-    void setGender(String gender);
-    void setNationality(String nationality);
-    void setUser(User user);
 
+    String getGender();
+    void setGender(String gender);
+
+    String getNationality();
+    void setNationality(String nationality);
+
+    User getUser();
+    void setUser(User user);
 }

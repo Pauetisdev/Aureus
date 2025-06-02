@@ -6,8 +6,8 @@ import cat.uvic.teknos.dam.aureus.repositories.UserDetailRepository;
 import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.DataSource;
 import cat.uvic.teknos.dam.aureus.repositories.jdbc.exceptions.CrudException;
 
-import java.sql.SQLException;
-import java.util.Date;
+import java.sql.*;
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -21,18 +21,20 @@ public class JdbcUserDetailRepository implements UserDetailRepository {
 
     @Override
     public void save(UserDetail userDetail) {
-        try (var connection = dataSource.getConnection();
-             var preparedStatement = connection.prepareStatement(
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(
                      "INSERT INTO USER_DETAIL (USER_ID, BIRTHDATE, PHONE, GENDER, NATIONALITY) VALUES (?, ?, ?, ?, ?) " +
                              "ON DUPLICATE KEY UPDATE BIRTHDATE = VALUES(BIRTHDATE), PHONE = VALUES(PHONE), GENDER = VALUES(GENDER), NATIONALITY = VALUES(NATIONALITY)"
              )) {
 
             preparedStatement.setInt(1, userDetail.getId());
 
-            if (userDetail.getBirthday() != null) {
-                preparedStatement.setDate(2, new java.sql.Date(userDetail.getBirthday().getTime()));
+            // ✅ Usa LocalDate directamente
+            LocalDate birthdate = userDetail.getBirthdate();
+            if (birthdate != null) {
+                preparedStatement.setDate(2, Date.valueOf(birthdate)); // LocalDate -> java.sql.Date
             } else {
-                preparedStatement.setNull(2, java.sql.Types.DATE);
+                preparedStatement.setNull(2, Types.DATE);
             }
 
             preparedStatement.setString(3, userDetail.getPhone());
@@ -48,8 +50,8 @@ public class JdbcUserDetailRepository implements UserDetailRepository {
 
     @Override
     public void delete(UserDetail userDetail) {
-        try (var connection = dataSource.getConnection();
-             var preparedStatement = connection.prepareStatement(
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(
                      "DELETE FROM USER_DETAIL WHERE USER_ID = ?"
              )) {
 
@@ -63,30 +65,30 @@ public class JdbcUserDetailRepository implements UserDetailRepository {
 
     @Override
     public UserDetail get(Integer id) {
-        try (var connection = dataSource.getConnection();
-             var preparedStatement = connection.prepareStatement(
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(
                      "SELECT * FROM USER_DETAIL WHERE USER_ID = ?"
              )) {
 
             preparedStatement.setInt(1, id);
 
-            try (var rs = preparedStatement.executeQuery()) {
+            try (ResultSet rs = preparedStatement.executeQuery()) {
                 if (rs.next()) {
-                    var userDetail = new UserDetailImpl();
-                    userDetail.setId(rs.getInt("USER_ID"));
+                    var result = new UserDetailImpl();
+                    result.setId(rs.getInt("USER_ID"));
 
-                    var sqlDate = rs.getDate("BIRTHDATE");
+                    Date sqlDate = rs.getDate("BIRTHDATE");
                     if (sqlDate != null) {
-                        userDetail.setBirthday((java.sql.Date) new Date(sqlDate.getTime()));
+                        result.setBirthdate(sqlDate.toLocalDate()); // ✅ java.sql.Date -> LocalDate
                     } else {
-                        userDetail.setBirthday(null);
+                        result.setBirthdate(null);
                     }
 
-                    userDetail.setPhone(rs.getString("PHONE"));
-                    userDetail.setGender(rs.getString("GENDER"));
-                    userDetail.setNationality(rs.getString("NATIONALITY"));
+                    result.setPhone(rs.getString("PHONE"));
+                    result.setGender(rs.getString("GENDER"));
+                    result.setNationality(rs.getString("NATIONALITY"));
 
-                    return userDetail;
+                    return result;
                 } else {
                     return null;
                 }
@@ -101,29 +103,26 @@ public class JdbcUserDetailRepository implements UserDetailRepository {
     public Set<UserDetail> getAll() {
         Set<UserDetail> userDetails = new HashSet<>();
 
-        try (var connection = dataSource.getConnection();
-             var preparedStatement = connection.prepareStatement(
-                     "SELECT * FROM USER_DETAIL"
-             )) {
+        try (Connection connection = dataSource.getConnection();
+             Statement statement = connection.createStatement();
+             ResultSet rs = statement.executeQuery("SELECT * FROM USER_DETAIL")) {
 
-            try (var rs = preparedStatement.executeQuery()) {
-                while (rs.next()) {
-                    var userDetail = new UserDetailImpl();
-                    userDetail.setId(rs.getInt("USER_ID"));
+            while (rs.next()) {
+                var userDetail = new UserDetailImpl();
+                userDetail.setId(rs.getInt("USER_ID"));
 
-                    var sqlDate = rs.getDate("BIRTHDATE");
-                    if (sqlDate != null) {
-                        userDetail.setBirthday((java.sql.Date) new Date(sqlDate.getTime()));
-                    } else {
-                        userDetail.setBirthday(null);
-                    }
-
-                    userDetail.setPhone(rs.getString("PHONE"));
-                    userDetail.setGender(rs.getString("GENDER"));
-                    userDetail.setNationality(rs.getString("NATIONALITY"));
-
-                    userDetails.add(userDetail);
+                Date sqlDate = rs.getDate("BIRTHDATE");
+                if (sqlDate != null) {
+                    userDetail.setBirthdate(sqlDate.toLocalDate()); // ✅ Conversión correcta
+                } else {
+                    userDetail.setBirthdate(null);
                 }
+
+                userDetail.setPhone(rs.getString("PHONE"));
+                userDetail.setGender(rs.getString("GENDER"));
+                userDetail.setNationality(rs.getString("NATIONALITY"));
+
+                userDetails.add(userDetail);
             }
 
             return userDetails;

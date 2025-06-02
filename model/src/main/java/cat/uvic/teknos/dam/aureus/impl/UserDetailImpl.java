@@ -1,13 +1,14 @@
 package cat.uvic.teknos.dam.aureus.impl;
 
-import cat.uvic.teknos.dam.aureus.UserDetail;
 import cat.uvic.teknos.dam.aureus.User;
-import java.sql.Date;
+import cat.uvic.teknos.dam.aureus.UserDetail;
+
+import java.time.LocalDate;
 
 public class UserDetailImpl implements UserDetail {
 
-    private int id;
-    private Date birthday;
+    private Integer id;
+    private LocalDate birthdate;
     private String phone;
     private String gender;
     private String nationality;
@@ -19,22 +20,28 @@ public class UserDetailImpl implements UserDetail {
     public Integer getId() {
         return id;
     }
-    public void setId(int id) {
+
+    @Override
+    public void setId(Integer id) {
         this.id = id;
     }
 
     @Override
-    public Date getBirthday() {
-        return birthday;
+    public LocalDate getBirthdate() {
+        return birthdate;
     }
-    public void setBirthday(Date birthday) {
-        this.birthday = birthday;
+
+    @Override
+    public void setBirthdate(LocalDate birthdate) {
+        this.birthdate = birthdate;
     }
 
     @Override
     public String getPhone() {
         return phone;
     }
+
+    @Override
     public void setPhone(String phone) {
         this.phone = phone;
     }
@@ -43,6 +50,8 @@ public class UserDetailImpl implements UserDetail {
     public String getGender() {
         return gender;
     }
+
+    @Override
     public void setGender(String gender) {
         this.gender = gender;
     }
@@ -51,6 +60,8 @@ public class UserDetailImpl implements UserDetail {
     public String getNationality() {
         return nationality;
     }
+
+    @Override
     public void setNationality(String nationality) {
         this.nationality = nationality;
     }
@@ -59,6 +70,8 @@ public class UserDetailImpl implements UserDetail {
     public User getUser() {
         return user;
     }
+
+    @Override
     public void setUser(User user) {
         this.user = user;
     }

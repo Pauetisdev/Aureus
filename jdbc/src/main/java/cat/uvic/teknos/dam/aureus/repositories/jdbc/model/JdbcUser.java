@@ -1,11 +1,10 @@
 package cat.uvic.teknos.dam.aureus.repositories.jdbc.model;
 
 import cat.uvic.teknos.dam.aureus.Collection;
-import cat.uvic.teknos.dam.aureus.Transaction;
 import cat.uvic.teknos.dam.aureus.User;
 import cat.uvic.teknos.dam.aureus.UserDetail;
 
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class JdbcUser implements User {
@@ -14,11 +13,9 @@ public class JdbcUser implements User {
     private String username;
     private String email;
     private String passwordHash;
-    private Timestamp joinDate;
+    private LocalDateTime joinDate;
     private UserDetail userDetail;
     private List<Collection> collections;
-    private List<Transaction> buyerTransactions;
-    private List<Transaction> sellerTransactions;
 
     @Override
     public Integer getId() {
@@ -61,12 +58,12 @@ public class JdbcUser implements User {
     }
 
     @Override
-    public Timestamp getJoinDate() {
+    public LocalDateTime getJoinDate() {
         return joinDate;
     }
 
     @Override
-    public void setJoinDate(Timestamp joinDate) {
+    public void setJoinDate(LocalDateTime joinDate) {
         this.joinDate = joinDate;
     }
 
@@ -88,25 +85,5 @@ public class JdbcUser implements User {
     @Override
     public void setCollections(List<Collection> collections) {
         this.collections = collections;
-    }
-
-    @Override
-    public List<Transaction> getBuyerTransactions() {
-        return buyerTransactions;
-    }
-
-    @Override
-    public void setBuyerTransactions(List<Transaction> buyerTransactions) {
-        this.buyerTransactions = buyerTransactions;
-    }
-
-    @Override
-    public List<Transaction> getSellerTransactions() {
-        return sellerTransactions;
-    }
-
-    @Override
-    public void setSellerTransactions(List<Transaction> sellerTransactions) {
-        this.sellerTransactions = sellerTransactions;
     }
 }

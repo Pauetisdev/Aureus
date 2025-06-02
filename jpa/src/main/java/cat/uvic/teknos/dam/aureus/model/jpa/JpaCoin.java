@@ -11,11 +11,9 @@ import java.util.List;
 @Entity
 @Table(name = "COIN")
 @Data
-
-// @EqualsAndHashCode, @ToString : Para evitar recursion infinita
+// @EqualsAndHashCode, @ToString : To avoid infinite recursion
 @EqualsAndHashCode(exclude = {"collection", "coinTransactions"})
 @ToString(exclude = {"collection", "coinTransactions"})
-
 public class JpaCoin {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -46,10 +44,12 @@ public class JpaCoin {
     @Column(name = "HISTORICAL_SIGNIFICANCE", length = 1000)
     private String historicalSignificance;
 
+    // RELATION WITH COLLECTION (Many-to-One)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "COLLECTION_ID")
     private JpaCollection collection;
 
-    @OneToMany(mappedBy = "coin", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    // RELATION WITH COIN_TRANSACTIONS (One-to-Many)
+    @OneToMany(mappedBy = "coin", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private List<JpaCoinTransaction> coinTransactions = new ArrayList<>();
 }

@@ -30,7 +30,7 @@
         </properties>
     </persistence-unit>
 
-    <!-- Persistence unit para tests -->
+    <!-- Persistence unit for tests -->
     <persistence-unit name="aureus_test" transaction-type="RESOURCE_LOCAL">
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
 
@@ -42,13 +42,13 @@
         <class>cat.uvic.teknos.dam.aureus.model.jpa.JpaCoinTransaction</class>
 
         <properties>
-            <!-- JDBC connection properties para tests -->
+            <!-- JDBC connection properties for tests -->
             <property name="jakarta.persistence.jdbc.driver" value="com.mysql.cj.jdbc.Driver"/>
             <property name="jakarta.persistence.jdbc.url" value="jdbc:mysql://localhost:3306/AUREUS_TEST?useSSL=false&amp;serverTimezone=UTC"/>
             <property name="jakarta.persistence.jdbc.user" value="root"/>
             <property name="jakarta.persistence.jdbc.password" value="rootpassword"/>
 
-            <!-- Hibernate properties para tests -->
+            <!-- Hibernate properties for tests -->
             <property name="hibernate.dialect" value="org.hibernate.dialect.MySQLDialect"/>
             <property name="hibernate.hbm2ddl.auto" value="create-drop"/>
             <property name="hibernate.show_sql" value="true"/>

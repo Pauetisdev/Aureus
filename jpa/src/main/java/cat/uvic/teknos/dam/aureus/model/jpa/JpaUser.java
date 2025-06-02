@@ -1,10 +1,10 @@
 package cat.uvic.teknos.dam.aureus.model.jpa;
 
+import cat.uvic.teknos.dam.aureus.User;  // <-- això
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +15,7 @@ import java.util.List;
 @EqualsAndHashCode(exclude = {"collections", "purchasedTransactions", "soldTransactions", "userDetail"})
 @ToString(exclude = {"collections", "purchasedTransactions", "soldTransactions", "userDetail"})
 public class JpaUser {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "USER_ID")
@@ -38,9 +39,4 @@ public class JpaUser {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<JpaCollection> collections = new ArrayList<>();
 
-    @OneToMany(mappedBy = "buyer", fetch = FetchType.LAZY)
-    private List<JpaTransaction> purchasedTransactions = new ArrayList<>();
-
-    @OneToMany(mappedBy = "seller", fetch = FetchType.LAZY)
-    private List<JpaTransaction> soldTransactions = new ArrayList<>();
 }

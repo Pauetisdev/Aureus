@@ -1,18 +1,21 @@
 package cat.uvic.teknos.dam.aureus;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface Collection {
     Integer getId();
+    void setId(Integer id);
+
     String getCollectionName();
-    String getDescription();
-    User getUser();
-    List<CoinCollection> getCoinCollections();
-
-    void setId(int id);
     void setCollectionName(String collectionName);
-    void setDescription(String description);
-    void setUser(User user);
-    void setCoinCollections(java.util.List<CoinCollection> coinCollections);
 
+    String getDescription();
+    void setDescription(String description);
+
+    User getUser();
+    void setUser(User user);
+
+    List<CoinCollection> getCoinCollections();
+    void setCoinCollections(List<CoinCollection> coinCollections);
 }
