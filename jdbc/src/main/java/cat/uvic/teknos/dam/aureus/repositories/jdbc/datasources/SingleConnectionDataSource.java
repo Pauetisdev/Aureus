@@ -9,6 +9,7 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 public class SingleConnectionDataSource implements DataSource {
+    private final String format;
     private Connection connection;
     private final String driver;
     private final String server;
@@ -16,7 +17,17 @@ public class SingleConnectionDataSource implements DataSource {
     private final String user;
     private final String password;
 
+    public SingleConnectionDataSource(String format, String driver, String server, String database, String user, String password) {
+        this.format = format;
+        this.driver = driver;
+        this.server = server;
+        this.database = database;
+        this.user = user;
+        this.password = password;
+    }
+
     public SingleConnectionDataSource(String driver, String server, String database, String user, String password) {
+        this.format = "jdbc:%s:%s/%s";
         this.driver = driver;
         this.server = server;
         this.database = database;
@@ -32,6 +43,7 @@ public class SingleConnectionDataSource implements DataSource {
             throw new DataSourceException("Failed to load datasource.properties", e);
         }
 
+        format = properties.getProperty("format");
         driver = properties.getProperty("driver");
         server = properties.getProperty("server");
         database = properties.getProperty("database");
@@ -42,14 +54,14 @@ public class SingleConnectionDataSource implements DataSource {
     @Override
     public Connection getConnection() {
         if (connection == null) {
+            var url = String.format(format, driver, server, database);
             try {
-                Class.forName(driver);
                 connection = DriverManager.getConnection(
-                        String.format("jdbc:%s://%s/%s", driver, server, database),
+                        url,
                         user,
                         password
                 );
-            } catch (SQLException | ClassNotFoundException e) {
+            } catch (SQLException e) {
                 throw new DataSourceException("Failed to get database connection", e);
             }
         }

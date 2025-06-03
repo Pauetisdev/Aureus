@@ -34,7 +34,7 @@ public class JdbcCoinCollectionRepositoryIT {
         String password = "";
 
         // Inicializamos SingleConnectionDataSource con los parámetros
-        dataSource = new SingleConnectionDataSource(driver, server, database, user, password);
+        dataSource = new SingleConnectionDataSource("", driver, server, database, user, password);
 
         coinRepository = new JdbcCoinRepository(dataSource);
         collectionRepository = new JdbcCollectionRepository(dataSource);

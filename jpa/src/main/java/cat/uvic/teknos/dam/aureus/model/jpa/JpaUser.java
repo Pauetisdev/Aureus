@@ -1,6 +1,8 @@
 package cat.uvic.teknos.dam.aureus.model.jpa;
 
+import cat.uvic.teknos.dam.aureus.Collection;
 import cat.uvic.teknos.dam.aureus.User;  // <-- això
+import cat.uvic.teknos.dam.aureus.UserDetail;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -14,12 +16,12 @@ import java.util.List;
 @Data
 @EqualsAndHashCode(exclude = {"collections", "purchasedTransactions", "soldTransactions", "userDetail"})
 @ToString(exclude = {"collections", "purchasedTransactions", "soldTransactions", "userDetail"})
-public class JpaUser {
+public class JpaUser implements User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "USER_ID")
-    private int id;
+    private Integer id;
 
     @Column(name = "USERNAME", unique = true, nullable = false)
     private String username;
@@ -34,9 +36,9 @@ public class JpaUser {
     private LocalDateTime joinDate;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private JpaUserDetail userDetail;
+    private UserDetail userDetail;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<JpaCollection> collections = new ArrayList<>();
+    private List<Collection> collections = new ArrayList<>();
 
 }

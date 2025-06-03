@@ -16,6 +16,9 @@ dependencies {
     implementation("org.hibernate.orm:hibernate-core:7.0.0.Final")
     implementation("com.mysql:mysql-connector-j:9.3.0")
 
+
     compileOnly("org.projectlombok:lombok:1.18.30")
     annotationProcessor("org.projectlombok:lombok:1.18.30")
+
+    testImplementation("com.h2database:h2:2.3.232")
 }

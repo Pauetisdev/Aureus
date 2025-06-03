@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -15,9 +16,15 @@ class SingleConnectionDataSourceTest {
     @BeforeAll
     static void setup() {
         // Usamos H2, driver y URL para memoria
+        String url = "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1"; // DB_CLOSE_DELAY=-1 fa que es mantingui en memòria mentre l'app s'executa
+        String user = "sa";
+        String password = "";
+
+
         dataSource = new SingleConnectionDataSource(
-                "org.h2.Driver",
-                "localhost",
+                "jdbc:%s:%s:%s",
+                "h2",
+                "mem",
                 "testdb",
                 "sa",
                 ""

@@ -7,8 +7,11 @@ plugins {
 }
 
 dependencies {
-    implementation("org.apache.commons:commons-text")
-    implementation("com.fasterxml.jackson.core:jackson-core:2.18.3")
+    implementation(project(":jdbc"))
+    implementation(project(":model"))
+    implementation(project(":repositories"))
+
+    implementation("com.github.freva:ascii-table:1.8.0")
     implementation("com.mysql:mysql-connector-j:9.3.0")
     implementation(project(":utilities"))
 
