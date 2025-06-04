@@ -7,6 +7,7 @@ import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.DataSource;
 import cat.uvic.teknos.dam.aureus.repositories.jdbc.exceptions.CrudException;
 
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -20,12 +21,13 @@ public class JdbcUserRepository implements UserRepository {
     @Override
     public void save(User user) {
         String sql = """
-            INSERT INTO USER (USERNAME, EMAIL, PASSWORD_HASH)\s
-            VALUES (?, ?, ?)
-            ON DUPLICATE KEY UPDATE\s
-                USERNAME = VALUES(USERNAME),\s
-                PASSWORD_HASH = VALUES(PASSWORD_HASH)
-           \s""";
+            INSERT INTO USER (USERNAME, EMAIL, PASSWORD_HASH, JOIN_DATE)
+            VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                USERNAME = VALUES(USERNAME),
+                PASSWORD_HASH = VALUES(PASSWORD_HASH),
+                JOIN_DATE = VALUES(JOIN_DATE)
+            """;
 
         try (var connection = dataSource.getConnection();
              var ps = connection.prepareStatement(sql)) {
@@ -33,6 +35,7 @@ public class JdbcUserRepository implements UserRepository {
             ps.setString(1, user.getUsername());
             ps.setString(2, user.getEmail());
             ps.setString(3, user.getPasswordHash());
+            ps.setTimestamp(4, Timestamp.valueOf(user.getJoinDate()));
 
             ps.executeUpdate();
 
@@ -122,6 +125,12 @@ public class JdbcUserRepository implements UserRepository {
         user.setUsername(rs.getString("USERNAME"));
         user.setEmail(rs.getString("EMAIL"));
         user.setPasswordHash(rs.getString("PASSWORD_HASH"));
+
+        Timestamp joinDate = rs.getTimestamp("JOIN_DATE");
+        if (joinDate != null) {
+            user.setJoinDate(joinDate.toLocalDateTime());
+        }
+
         return user;
     }
 }

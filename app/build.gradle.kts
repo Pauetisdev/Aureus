@@ -19,5 +19,5 @@ dependencies {
 
 application {
     // Define the main class for the application.
-    mainClass = "cat.uvic.teknos.dam.aureus"
+    mainClass = "cat.uvic.teknos.aureus.ui.App"
 }

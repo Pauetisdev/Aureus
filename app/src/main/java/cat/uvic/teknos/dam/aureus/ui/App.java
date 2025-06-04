@@ -1,7 +1,9 @@
-package cat.uvic.teknos.aureus.ui;
+package cat.uvic.teknos.dam.aureus.ui;
 
 import cat.uvic.teknos.dam.aureus.ModelFactory;
 import cat.uvic.teknos.dam.aureus.repositories.RepositoryFactory;
+import cat.uvic.teknos.dam.aureus.ui.manager.DIManager;
+import cat.uvic.teknos.dam.aureus.ui.manager.UserManager;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;

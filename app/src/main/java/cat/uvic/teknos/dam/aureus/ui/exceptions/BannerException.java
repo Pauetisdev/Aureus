@@ -1,4 +1,4 @@
-package cat.uvic.teknos.aureus.ui.exceptions;
+package cat.uvic.teknos.dam.aureus.ui.exceptions;
 
 public class BannerException extends RuntimeException {
     public BannerException() {

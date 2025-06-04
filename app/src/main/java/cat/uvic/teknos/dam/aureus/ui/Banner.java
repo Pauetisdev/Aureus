@@ -1,6 +1,6 @@
-package cat.uvic.teknos.aureus.ui;
+package cat.uvic.teknos.dam.aureus.ui;
 
-import cat.uvic.teknos.aureus.ui.exceptions.BannerException;
+import cat.uvic.teknos.dam.aureus.ui.exceptions.BannerException;
 
 import java.io.IOException;
 import java.net.URISyntaxException;

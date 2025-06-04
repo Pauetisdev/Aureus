@@ -1,6 +1,6 @@
-package cat.uvic.teknos.aureus.ui;
+package cat.uvic.teknos.dam.aureus.ui.manager;
 
-import cat.uvic.teknos.aureus.ui.exceptions.DIException;
+import cat.uvic.teknos.dam.aureus.ui.exceptions.DIException;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
