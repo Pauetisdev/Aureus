@@ -11,21 +11,39 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
-import java.util.Objects;
 import java.util.Scanner;
 import java.util.Set;
 
+/**
+ * Manages user details operations including creation, display, and deletion.
+ * This class provides a command-line interface for managing user details in the system.
+ *
+ * @author Pau Vilardell
+ * @since 2025-06-04
+ */
 public class UserDetailManager {
     private final ModelFactory modelFactory;
     private final RepositoryFactory repositoryFactory;
     private final Scanner scanner;
 
+    /**
+     * Constructs a new UserDetailManager with the required dependencies.
+     *
+     * @param modelFactory The factory for creating model objects
+     * @param repositoryFactory The factory for accessing data repositories
+     * @param scanner Scanner for reading user input
+     */
     public UserDetailManager(ModelFactory modelFactory, RepositoryFactory repositoryFactory, Scanner scanner) {
         this.modelFactory = modelFactory;
         this.repositoryFactory = repositoryFactory;
         this.scanner = scanner;
     }
 
+    /**
+     * Displays the details of a specific user.
+     *
+     * @param id The ID of the user whose details should be displayed
+     */
     private void displayUserDetail(Integer id) {
         var detail = repositoryFactory.getUserDetailRepository().get(id);
         if (detail != null) {
@@ -44,6 +62,10 @@ public class UserDetailManager {
         }
     }
 
+    /**
+     * Displays a list of all available user details in the system.
+     * Uses ASCII table format for better readability.
+     */
     private void displayAvailableUserDetails() {
         var details = repositoryFactory.getUserDetailRepository().getAll();
         if (details.isEmpty()) {
@@ -61,6 +83,10 @@ public class UserDetailManager {
         System.out.println("----------------------------------------");
     }
 
+    /**
+     * Displays a list of all available users in the system.
+     * Uses ASCII table format for better readability.
+     */
     private void displayAvailableUsers() {
         Set<User> users = repositoryFactory.getUserRepository().getAll();
         if (users.isEmpty()) {
@@ -78,9 +104,12 @@ public class UserDetailManager {
         System.out.println("----------------------------------------");
     }
 
-    private void createOrUpdateUserDetails() {
+    /**
+     * Creates new user details for a user who doesn't have any existing details.
+     * If the user already has details, the operation will be cancelled.
+     */
+    private void createNewUserDetails() {
         try {
-            // Mostrar usuarios disponibles
             displayAvailableUsers();
 
             System.out.println("\nEnter User ID:");
@@ -92,57 +121,45 @@ public class UserDetailManager {
                 return;
             }
 
-            // Verificar si ya existen detalles
             var existingDetails = repositoryFactory.getUserDetailRepository().get(userId);
             if (existingDetails != null) {
-                System.out.println("\nUser details already exist for this user:");
+                System.out.println("\nUser details already exist for this user. Cannot create new details.");
                 displayUserDetail(userId);
-                System.out.println("\nDo you want to update these details? (yes/no):");
-                if (!scanner.nextLine().equalsIgnoreCase("yes")) {
-                    System.out.println("Operation cancelled");
-                    return;
-                }
+                return;
             }
 
-            // Crear o actualizar detalles
-            var detail = existingDetails != null ? existingDetails : modelFactory.newUserDetail();
+            var detail = modelFactory.newUserDetail();
             detail.setUser(user);
             detail.setId(userId);
 
-            System.out.println("\nEnter new details (press Enter to skip/keep current value):");
+            System.out.println("\nEnter new details:");
 
-            System.out.println("Phone" + (existingDetails != null && existingDetails.getPhone() != null ?
-                    " [current: " + existingDetails.getPhone() + "]" : "") + ":");
+            System.out.println("Phone:");
             var phone = scanner.nextLine();
-            detail.setPhone(phone.isEmpty() ? (existingDetails != null ? existingDetails.getPhone() : null) : phone);
+            detail.setPhone(phone.isEmpty() ? null : phone);
 
-            System.out.println("Gender" + (existingDetails != null && existingDetails.getGender() != null ?
-                    " [current: " + existingDetails.getGender() + "]" : "") + ":");
+            System.out.println("Gender:");
             var gender = scanner.nextLine();
-            detail.setGender(gender.isEmpty() ? (existingDetails != null ? existingDetails.getGender() : null) : gender);
+            detail.setGender(gender.isEmpty() ? null : gender);
 
-            System.out.println("Nationality" + (existingDetails != null && existingDetails.getNationality() != null ?
-                    " [current: " + existingDetails.getNationality() + "]" : "") + ":");
+            System.out.println("Nationality:");
             var nationality = scanner.nextLine();
-            detail.setNationality(nationality.isEmpty() ? (existingDetails != null ? existingDetails.getNationality() : null) : nationality);
+            detail.setNationality(nationality.isEmpty() ? null : nationality);
 
-            System.out.println("Birth date (YYYY-MM-DD)" + (existingDetails != null && existingDetails.getBirthdate() != null ?
-                    " [current: " + existingDetails.getBirthdate().format(DateTimeFormatter.ISO_LOCAL_DATE) + "]" : "") + ":");
+            System.out.println("Birth date (YYYY-MM-DD):");
             var birthdateStr = scanner.nextLine();
             if (!birthdateStr.isEmpty()) {
                 try {
                     var birthdate = LocalDate.parse(birthdateStr, DateTimeFormatter.ISO_LOCAL_DATE);
                     detail.setBirthdate(birthdate);
                 } catch (DateTimeParseException e) {
-                    System.out.println("Invalid date format. Using previous value or null.");
-                    detail.setBirthdate(existingDetails != null ? existingDetails.getBirthdate() : null);
+                    System.out.println("Invalid date format. Setting birthdate to null.");
+                    detail.setBirthdate(null);
                 }
-            } else {
-                detail.setBirthdate(existingDetails != null ? existingDetails.getBirthdate() : null);
             }
 
             repositoryFactory.getUserDetailRepository().save(detail);
-            System.out.println("\nDetails successfully " + (existingDetails != null ? "updated" : "saved"));
+            System.out.println("\nDetails successfully saved");
             displayUserDetail(userId);
 
         } catch (NumberFormatException e) {
@@ -150,11 +167,19 @@ public class UserDetailManager {
         }
     }
 
+    /**
+     * Main method that runs the user detail management interface.
+     * Provides a menu with options to:
+     * 1. View specific user details
+     * 2. Create new user details
+     * 3. Delete user details
+     * 4. Exit
+     */
     public void run() {
         while (true) {
             System.out.println("\nUser Details Management");
             System.out.println("1 - View specific user details");
-            System.out.println("2 - Create/Update user details");
+            System.out.println("2 - Create new user details");
             System.out.println("3 - Delete user details");
             System.out.println("4 - Exit");
             System.out.print("\nSelect an option: ");
@@ -174,7 +199,7 @@ public class UserDetailManager {
                     break;
 
                 case "2":
-                    createOrUpdateUserDetails();
+                    createNewUserDetails();
                     break;
 
                 case "3":

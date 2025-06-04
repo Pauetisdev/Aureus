@@ -9,7 +9,7 @@ import cat.uvic.teknos.dam.aureus.repositories.CollectionRepository;
 import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.DataSource;
 import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.SingleConnectionDataSource;
 import org.junit.jupiter.api.*;
-
+import cat.uvic.teknos.dam.aureus.repositories.UserRepository;
 import java.sql.Connection;
 import java.sql.Statement;
 import java.util.List;
@@ -22,6 +22,8 @@ public class JdbcCoinCollectionRepositoryIT {
     static CoinRepository coinRepository;
     static CollectionRepository collectionRepository;
     static JdbcCoinCollectionRepository repo;
+    static UserRepository userRepository;
+
 
     @BeforeAll
     static void setupDatabase() throws Exception {
@@ -37,7 +39,7 @@ public class JdbcCoinCollectionRepositoryIT {
         dataSource = new SingleConnectionDataSource("", driver, server, database, user, password);
 
         coinRepository = new JdbcCoinRepository(dataSource);
-        collectionRepository = new JdbcCollectionRepository(dataSource);
+        collectionRepository = new JdbcCollectionRepository(dataSource, userRepository);
         repo = new JdbcCoinCollectionRepository(dataSource);
 
         try (Connection con = dataSource.getConnection();

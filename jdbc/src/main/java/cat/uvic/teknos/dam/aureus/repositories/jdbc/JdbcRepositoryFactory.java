@@ -31,7 +31,7 @@ public class JdbcRepositoryFactory implements RepositoryFactory {
 
     @Override
     public CollectionRepository getCollectionRepository() {
-        return new JdbcCollectionRepository(dataSource);
+        return new JdbcCollectionRepository(dataSource, userRepository);
     }
 
     @Override

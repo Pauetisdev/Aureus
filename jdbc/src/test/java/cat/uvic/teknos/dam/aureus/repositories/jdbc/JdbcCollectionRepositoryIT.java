@@ -56,7 +56,7 @@ public class JdbcCollectionRepositoryIT {
         }
 
         userRepository = new JdbcUserRepository(dataSource);
-        collectionRepository = new JdbcCollectionRepository(dataSource);
+        collectionRepository = new JdbcCollectionRepository(dataSource, userRepository);
     }
 
     @Test

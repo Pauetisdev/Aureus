@@ -1,3 +1,4 @@
+
 package cat.uvic.teknos.dam.aureus.ui.manager;
 
 import cat.uvic.teknos.dam.aureus.ModelFactory;
@@ -10,17 +11,33 @@ import java.util.Objects;
 import java.util.Scanner;
 import java.time.LocalDateTime;
 
+/**
+ * Manages user operations through a command-line interface.
+ * Provides functionality for creating, reading, and deleting users.
+ * Uses ASCII tables for displaying user information in a formatted manner.
+ */
 public class UserManager {
     private ModelFactory modelFactory;
     private RepositoryFactory repositoryFactory;
     private Scanner scanner;
 
+    /**
+     * Constructs a new UserManager with the required dependencies.
+     *
+     * @param modelFactory Factory for creating model objects
+     * @param repositoryFactory Factory for accessing repositories
+     * @param scanner Scanner for reading user input
+     */
     public UserManager(ModelFactory modelFactory, RepositoryFactory repositoryFactory, Scanner scanner) {
         this.modelFactory = modelFactory;
         this.repositoryFactory = repositoryFactory;
         this.scanner = scanner;
     }
 
+    /**
+     * Displays all users in a formatted ASCII table.
+     * Shows ID, username, email, and join date for each user.
+     */
     private void displayAllUsers() {
         var users = repositoryFactory.getUserRepository().getAll();
         System.out.println(AsciiTable.getTable(users, Arrays.asList(
@@ -31,6 +48,17 @@ public class UserManager {
         )));
     }
 
+    /**
+     * Runs the user management interface.
+     * Provides a menu with the following options:
+     * 1. Show all users
+     * 2. View specific user details
+     * 3. Create new user
+     * 4. Delete existing user
+     * 5. Exit
+     *
+     * Handles user input and executes corresponding operations.
+     */
     public void run() {
         System.out.println("User Management, type: ");
         System.out.println("1 - to show all users list");
@@ -85,13 +113,12 @@ public class UserManager {
                     var newUser = modelFactory.newUser();
                     newUser.setUsername(username);
                     newUser.setEmail(newEmail);
-                    newUser.setPasswordHash(password); // Note: In a real application, you should hash the password
+                    newUser.setPasswordHash(password);
                     newUser.setJoinDate(LocalDateTime.now());
 
                     repository.save(newUser);
                     System.out.println("User successfully saved");
                     break;
-
 
                 case "4":
                     displayAllUsers();
