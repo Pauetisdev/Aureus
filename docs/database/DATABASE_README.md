@@ -1,3 +1,10 @@
+# 📚 AUREUS Database Documentation
+
+**Idioma / Language:** [🇪🇸 Español](#-español) | [🇬🇧 English](#-english)
+---
+
+## 🇪🇸 Español
+
 # 📊 Documentación de la Base de Datos AUREUS
 
 ## 🎯 Visión General
@@ -12,73 +19,84 @@ Almacena la información de los usuarios del sistema.
 - `USERNAME`
 - `EMAIL`
 - `PASSWORD_HASH`
-- `CREATION_DATE`
-- `LAST_LOGIN`
+- `JOIN_DATE`
 
-### 2. COLLECTIONS
+### 2. USER_DETAIL
+Información adicional de los usuarios.
+
+- `USER_ID` (FK → USER)
+- `BIRTHDATE`
+- `PHONE`
+- `GENDER`
+- `NATIONALITY`
+
+### 3. COLLECTION
 Gestiona las colecciones de monedas.
 
 - `COLLECTION_ID` (PK)
 - `USER_ID` (FK → USERS)
 - `NAME`
 - `DESCRIPTION`
-- `CREATION_DATE`
-- `VISIBILITY` (PUBLIC/PRIVATE)
 
-### 3. COINS
+### 4. COIN
 Registro detallado de cada moneda.
 
 - `COIN_ID` (PK)
-- `COLLECTION_ID` (FK → COLLECTIONS)
-- `NAME`
-- `YEAR`
-- `COUNTRY`
-- `MATERIAL`
-- `DENOMINATION`
-- `CONDITION`
-- `DESCRIPTION`
-- `REGISTRATION_DATE`
+- `COIN_NAME`
+- `COIN_YEAR`
+- `COIN_MATERIAL`
+- `COIN_WEIGHT`
+- `COIN_DIAMETER`
+- `ESTIMATED_VALUE`
+- `ORIGIN_COUNTRY`
+- `HISTORICAL_SIGNIFICANCE`
+- `COLLECTION_ID` (FK → COLLECTION)
 
-### 4. COIN_COLLECTION
+### 5. COIN_COLLECTION
 Tabla puente para relación muchos a muchos entre monedas y colecciones.
 
-- `COIN_ID` (FK → COINS)
-- `COLLECTION_ID` (FK → COLLECTIONS)
-- `ADDITION_DATE`
+- `COIN_ID` (FK → COIN)
+- `COLLECTION_ID` (FK → COLLECTION)
 
-### 5. TRANSACTIONS
-Registra todas las transacciones de monedas.
+### 6. TRANSACTION
+Registra todas las transacciones.
 
 - `TRANSACTION_ID` (PK)
-- `SELLER_ID` (FK → USERS)
-- `BUYER_ID` (FK → USERS)
-- `COIN_ID` (FK → COINS)
-- `DATE`
-- `PRICE`
-- `STATUS`
+- `TRANSACTION_DATE`
+- `BUYER_ID`
+- `SELLER_ID`
 
+### 7. COIN_TRANSACTION
+Tabla puente para relación muchos a muchos entre monedas y transacciones, con información adicional.
+
+- `COIN_ID` (FK → COIN)
+- `TRANSACTION_ID` (FK → TRANSACTION)
+- `TRANSACTION_PRICE`
+- `CURRENCY`
 ## 🔄 Relaciones
 
-### Usuarios y Colecciones (1:N)
+### USER y USER_DETAIL (1:1)
+- Cada usuario tiene un detalle asociado
+- `USER_DETAIL.USER_ID` referencia a `USER.USER_ID`
+
+### USER y COLLECTION (1:N)
 - Un usuario puede tener múltiples colecciones
-- Cada colección pertenece a un único usuario
-- Relación mediante `USER_ID` en tabla `COLLECTIONS`
+- Cada colección pertenece a un usuario
 
-### Colecciones y Monedas
-1. **Relación Principal (1:N)**
-    - Una colección puede contener múltiples monedas
-    - Cada moneda tiene una colección principal
-    - Mediante `COLLECTION_ID` en tabla `COINS`
+### COLLECTION y COIN (1:N)
+- Una colección puede contener múltiples monedas
+- Cada moneda pertenece a una colección principal
 
-2. **Relación Secundaria (N:M)**
-    - Una moneda puede aparecer en múltiples colecciones
-    - Una colección puede contener monedas de otras colecciones
-    - Mediante tabla puente `COIN_COLLECTION`
+### COIN y COLLECTION (N:M) vía COIN_COLLECTION
+- Una moneda puede estar en múltiples colecciones
+- Una colección puede contener monedas de otras colecciones
 
-### Transacciones (N:M con USERS)
-- Conecta dos usuarios (comprador y vendedor)
-- Vincula con la moneda específica
-- Registra detalles de la transacción
+### TRANSACTION y USER (N:M)
+- Una transacción involucra un comprador y un vendedor (ambos usuarios)
+
+### TRANSACTION y COIN (N:M) vía COIN_TRANSACTION
+- Una transacción puede involucrar varias monedas
+- Cada moneda puede estar en varias transacciones
 
 ## 🔒 Restricciones
 
@@ -95,3 +113,116 @@ Registra todas las transacciones de monedas.
 ## 🚀 Escalabilidad
 - Diseño preparado para crecimiento
 - Estructura flexible para futuras características  
+
+...
+## 🇬🇧 English
+
+# 📊 AUREUS Database Documentation
+
+## 🎯 Overview
+Relational database designed to manage a coin collection system, enabling detailed tracking of coins, collections, users, and transactions.
+
+## 📋 Main Tables
+
+### 1. USERS
+Stores system user information.
+
+- `USER_ID` (PK)
+- `USERNAME`
+- `EMAIL`
+- `PASSWORD_HASH`
+- `JOIN_DATE`
+
+### 2. USER_DETAIL
+Additional user information.
+
+- `USER_ID` (FK → USERS)
+- `BIRTHDATE`
+- `PHONE`
+- `GENDER`
+- `NATIONALITY`
+
+### 3. COLLECTION
+Manages coin collections.
+
+- `COLLECTION_ID` (PK)
+- `USER_ID` (FK → USERS)
+- `NAME`
+- `DESCRIPTION`
+
+### 4. COIN
+Detailed record of each coin.
+
+- `COIN_ID` (PK)
+- `COIN_NAME`
+- `COIN_YEAR`
+- `COIN_MATERIAL`
+- `COIN_WEIGHT`
+- `COIN_DIAMETER`
+- `ESTIMATED_VALUE`
+- `ORIGIN_COUNTRY`
+- `HISTORICAL_SIGNIFICANCE`
+- `COLLECTION_ID` (FK → COLLECTION)
+
+### 5. COIN_COLLECTION
+Join table for many-to-many relationship between coins and collections.
+
+- `COIN_ID` (FK → COIN)
+- `COLLECTION_ID` (FK → COLLECTION)
+
+### 6. TRANSACTION
+Stores all transactions.
+
+- `TRANSACTION_ID` (PK)
+- `TRANSACTION_DATE`
+- `BUYER_ID`
+- `SELLER_ID`
+
+### 7. COIN_TRANSACTION
+Join table for many-to-many relationship between coins and transactions, with additional information.
+
+- `COIN_ID` (FK → COIN)
+- `TRANSACTION_ID` (FK → TRANSACTION)
+- `TRANSACTION_PRICE`
+- `CURRENCY`
+
+## 🔄 Relationships
+
+### USER and USER_DETAIL (1:1)
+- Each user has associated detail information
+- `USER_DETAIL.USER_ID` references `USER.USER_ID`
+
+### USER and COLLECTION (1:N)
+- One user can have multiple collections
+- Each collection belongs to one user
+
+### COLLECTION and COIN (1:N)
+- A collection can contain multiple coins
+- Each coin belongs to one main collection
+
+### COIN and COLLECTION (N:M) via COIN_COLLECTION
+- A coin can be part of multiple collections
+- A collection can contain coins from other collections
+
+### TRANSACTION and USER (N:M)
+- A transaction involves a buyer and a seller (both users)
+
+### TRANSACTION and COIN (N:M) via COIN_TRANSACTION
+- A transaction can involve multiple coins
+- Each coin can appear in multiple transactions
+
+## 🔒 Constraints
+
+### Referential Integrity
+- Cascade delete: collections → owned coins
+- Restricted delete on transactions
+- Unique constraint on emails and usernames
+
+### Business Rules
+1. A coin must always have a main collection
+2. Transactions must involve different users as buyer and seller
+3. Users with pending transactions cannot be deleted
+
+## 🚀 Scalability
+- Designed to scale
+- Flexible structure for future features
