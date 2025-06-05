@@ -1,5 +1,3 @@
-# AUREUS 🪙
-
 ```ascii
  █████╗ ██╗   ██╗██████╗ ███████╗██╗   ██╗███████╗
 ██╔══██╗██║   ██║██╔══██╗██╔════╝██║   ██║██╔════╝
@@ -15,7 +13,7 @@
 ## 🇪🇸 Español
 
 ## 📋 Descripción
-Aureus es un proyecto de software modular desarrollado en Java y Kotlin que sigue un enfoque de arquitectura limpia. Su objetivo principal es ofrecer una solución robusta y escalable para la gestión y manipulación de datos almacenados en bases de datos. El proyecto soporta la persistencia de datos mediante dos tecnologías muy utilizadas: JPA (Java Persistence API) y JDBC (Java Database Connectivity). Esta doble opción permite a los desarrolladores elegir la mejor alternativa según el caso de uso o las necesidades de rendimiento.
+Aureus es un proyecto de software modular desarrollado en Java que sigue un enfoque de arquitectura limpia. Su objetivo principal es ofrecer una solución robusta y escalable para la gestión y manipulación de datos almacenados en bases de datos. El proyecto soporta la persistencia de datos mediante dos tecnologías muy utilizadas: JPA (Java Persistence API) y JDBC (Java Database Connectivity). Esta doble opción permite a los desarrolladores elegir la mejor alternativa según el caso de uso o las necesidades de rendimiento.
 
 Diseñado pensando en la extensibilidad y mantenibilidad, Aureus separa las responsabilidades en módulos bien definidos, facilitando la incorporación de nuevas funcionalidades o la modificación de las existentes sin afectar al sistema completo. La arquitectura promueve principios de código limpio y fomenta las mejores prácticas en el diseño de software.
 ## 🏗️ Estructura del Proyecto
@@ -80,7 +78,6 @@ Las contribuciones son siempre bienvenidas. Para colaborar sigue estos pasos:
 ## 📬 Contacto
 Para cualquier consulta o aporte, puedes contactar a:
 
-- Pau Vilardell
 - Email: pauetisdev@gmail.com
 - O abrir un issue en el repositorio
 
@@ -91,7 +88,7 @@ Para cualquier consulta o aporte, puedes contactar a:
 ## 🇬🇧 English
 
 ## 📋 Description
-Aureus is a modular software project developed in Java and Kotlin that follows a clean architecture approach. Its main goal is to provide a robust and scalable solution for managing and manipulating data stored in databases. The project supports data persistence using two widely adopted technologies: JPA (Java Persistence API) and JDBC (Java Database Connectivity). This dual approach allows developers to choose the best option depending on the use case or performance requirements.
+Aureus is a modular software project developed in Java that follows a clean architecture approach. Its main goal is to provide a robust and scalable solution for managing and manipulating data stored in databases. The project supports data persistence using two widely adopted technologies: JPA (Java Persistence API) and JDBC (Java Database Connectivity). This dual approach allows developers to choose the best option depending on the use case or performance requirements.
 
 Designed with extensibility and maintainability in mind, Aureus separates responsibilities into well-defined modules, making it easier to add new features or modify existing ones without affecting the entire system. The architecture promotes clean code principles and encourages best practices in software design.
 ## 🏗️ Project Structure
@@ -156,7 +153,6 @@ Contributions are always welcome. To collaborate, follow these steps:
 ## 📬 Contact
 For any questions or contributions, you can contact:
 
-- Pau Vilardell
 - Email: pauetisdev@gmail.com
 - Or open an issue in the repository
 
