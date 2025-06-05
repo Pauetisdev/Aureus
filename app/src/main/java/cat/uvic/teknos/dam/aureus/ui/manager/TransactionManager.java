@@ -10,17 +10,37 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Scanner;
 
+/**
+ * Manages transaction operations in the AUREUS system.
+ * Provides functionality for viewing and searching transactions,
+ * as well as viewing associated coin details.
+ *
+ * @author Pau Vilardell
+ * @version 1.0
+ * @since 2025-06-05
+ */
 public class TransactionManager {
     private final ModelFactory modelFactory;
     private final RepositoryFactory repositoryFactory;
     private final Scanner scanner;
 
+    /**
+     * Constructs a new TransactionManager with the necessary dependencies.
+     *
+     * @param modelFactory Factory for creating domain model objects
+     * @param repositoryFactory Factory for accessing data repositories
+     * @param scanner Scanner for reading user input
+     */
     public TransactionManager(ModelFactory modelFactory, RepositoryFactory repositoryFactory, Scanner scanner) {
         this.modelFactory = modelFactory;
         this.repositoryFactory = repositoryFactory;
         this.scanner = scanner;
     }
 
+    /**
+     * Displays all transactions in a formatted table.
+     * If no transactions exist, displays an appropriate message.
+     */
     private void displayAllTransactions() {
         var transactions = repositoryFactory.getTransactionRepository().getAll();
         if (transactions.isEmpty()) {
@@ -35,6 +55,10 @@ public class TransactionManager {
         )));
     }
 
+    /**
+     * Displays a list of all available transaction IDs.
+     * Used to help users select valid transaction IDs for other operations.
+     */
     private void displayAvailableTransactionIds() {
         var transactions = repositoryFactory.getTransactionRepository().getAll();
         if (transactions.isEmpty()) {
@@ -49,6 +73,14 @@ public class TransactionManager {
         System.out.println("\n");
     }
 
+    /**
+     * Runs the main transaction management interface.
+     * Provides a menu-driven interface for all transaction-related operations:
+     * - View all transactions
+     * - Search transaction by ID
+     * - Search transactions by date range
+     * - View coins in transaction
+     */
     public void run() {
         while (true) {
             System.out.println("\nTransaction Management:");
@@ -64,88 +96,121 @@ public class TransactionManager {
                 break;
             }
 
-            switch (command) {
-                case "1":
-                    displayAllTransactions();
-                    break;
-
-                case "2":
-                    displayAvailableTransactionIds();
-                    System.out.println("Enter transaction ID:");
-                    try {
-                        var id = Integer.parseInt(scanner.nextLine());
-                        var transaction = repositoryFactory.getTransactionRepository().get(id);
-                        if (transaction != null) {
-                            System.out.println("\nTransaction details:");
-                            System.out.println("----------------------------------------");
-                            System.out.println("ID: " + transaction.getId());
-                            System.out.println("Date: " + transaction.getTransactionDate());
-                            System.out.println("Buyer: " + transaction.getBuyer().getUsername());
-                            System.out.println("Seller: " + transaction.getSeller().getUsername());
-                            System.out.println("----------------------------------------");
-                        } else {
-                            System.out.println("Transaction not found");
-                        }
-                    } catch (NumberFormatException e) {
-                        System.out.println("Invalid ID");
-                    }
-                    break;
-
-                case "3":
-                    System.out.println("Enter start date (YYYY-MM-DD HH:MM:SS):");
-                    var startStr = scanner.nextLine();
-                    System.out.println("Enter end date (YYYY-MM-DD HH:MM:SS):");
-                    var endStr = scanner.nextLine();
-                    try {
-                        var start = Timestamp.valueOf(startStr);
-                        var end = Timestamp.valueOf(endStr);
-                        var transactionsByDate = repositoryFactory.getTransactionRepository().findByDateRange(start, end);
-                        if (!transactionsByDate.isEmpty()) {
-                            System.out.println("\nTransactions found:");
-                            System.out.println(AsciiTable.getTable(transactionsByDate, Arrays.asList(
-                                    new Column().header("ID").with(t -> Integer.toString(t.getId())),
-                                    new Column().header("Date").with(t -> t.getTransactionDate().toString()),
-                                    new Column().header("Buyer").with(t -> t.getBuyer().getUsername()),
-                                    new Column().header("Seller").with(t -> t.getSeller().getUsername())
-                            )));
-                        } else {
-                            System.out.println("No transactions found in this date range");
-                        }
-                    } catch (IllegalArgumentException e) {
-                        System.out.println("Invalid date format");
-                    }
-                    break;
-
-                case "4":
-                    displayAvailableTransactionIds();
-                    System.out.println("Enter transaction ID:");
-                    try {
-                        var transactionId = Integer.parseInt(scanner.nextLine());
-                        var coinTransactions = repositoryFactory.getCoinTransactionRepository().getAll().stream()
-                                .filter(ct -> ct.getTransaction().getId().equals(transactionId))
-                                .toList();
-
-                        if (coinTransactions.isEmpty()) {
-                            System.out.println("No coins found in this transaction");
-                        } else {
-                            System.out.println("\nCoins in transaction:");
-                            System.out.println(AsciiTable.getTable(coinTransactions, Arrays.asList(
-                                    new Column().header("Coin ID").with(ct -> Integer.toString(ct.getCoin().getId())),
-                                    new Column().header("Name").with(ct -> ct.getCoin().getCoinName()),
-                                    new Column().header("Material").with(ct -> ct.getCoin().getCoinMaterial()),
-                                    new Column().header("Year").with(ct -> Integer.toString(ct.getCoin().getCoinYear())),
-                                    new Column().header("Country").with(ct -> ct.getCoin().getOriginCountry())
-                            )));
-                        }
-                    } catch (NumberFormatException e) {
-                        System.out.println("Invalid ID");
-                    }
-                    break;
-
-                default:
-                    System.out.println("Invalid command");
-                    break;
+            try {
+                switch (command) {
+                    case "1" -> displayAllTransactions();
+                    case "2" -> handleSearchById();
+                    case "3" -> handleDateRangeSearch();
+                    case "4" -> handleViewTransactionCoins();
+                    default -> System.out.println("Invalid command");
+                }
+            } catch (Exception e) {
+                System.out.println("Error: " + e.getMessage());
             }
+        }
+    }
+
+    /**
+     * Handles the search transaction by ID functionality.
+     * Displays detailed information about a specific transaction.
+     */
+    private void handleSearchById() {
+        displayAvailableTransactionIds();
+        System.out.println("Enter transaction ID:");
+        try {
+            var id = Integer.parseInt(scanner.nextLine());
+            var transaction = repositoryFactory.getTransactionRepository().get(id);
+            if (transaction != null) {
+                System.out.println("\nTransaction details:");
+                System.out.println("----------------------------------------");
+                System.out.println("ID: " + transaction.getId());
+                System.out.println("Date: " + transaction.getTransactionDate());
+                System.out.println("Buyer: " + transaction.getBuyer().getUsername());
+                System.out.println("Seller: " + transaction.getSeller().getUsername());
+                System.out.println("----------------------------------------");
+            } else {
+                System.out.println("Transaction not found");
+            }
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid ID");
+        }
+    }
+
+    /**
+     * Handles the search transactions by date range functionality.
+     * Allows users to search for transactions within a specific time period.
+     */
+    private void handleDateRangeSearch() {
+        System.out.println("Enter start date (YYYY-MM-DD HH:MM:SS):");
+        var startStr = scanner.nextLine();
+        System.out.println("Enter end date (YYYY-MM-DD HH:MM:SS):");
+        var endStr = scanner.nextLine();
+        try {
+            var start = Timestamp.valueOf(startStr);
+            var end = Timestamp.valueOf(endStr);
+            displayTransactionsByDateRange(start, end);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Invalid date format");
+        }
+    }
+
+    /**
+     * Displays transactions that occurred within the specified date range.
+     *
+     * @param start Start date/time for the search range
+     * @param end End date/time for the search range
+     */
+    private void displayTransactionsByDateRange(Timestamp start, Timestamp end) {
+        var transactionsByDate = repositoryFactory.getTransactionRepository().findByDateRange(start, end);
+        if (!transactionsByDate.isEmpty()) {
+            System.out.println("\nTransactions found:");
+            System.out.println(AsciiTable.getTable(transactionsByDate, Arrays.asList(
+                    new Column().header("ID").with(t -> Integer.toString(t.getId())),
+                    new Column().header("Date").with(t -> t.getTransactionDate().toString()),
+                    new Column().header("Buyer").with(t -> t.getBuyer().getUsername()),
+                    new Column().header("Seller").with(t -> t.getSeller().getUsername())
+            )));
+        } else {
+            System.out.println("No transactions found in this date range");
+        }
+    }
+
+    /**
+     * Handles the view coins in transaction functionality.
+     * Shows details of all coins involved in a specific transaction.
+     */
+    private void handleViewTransactionCoins() {
+        displayAvailableTransactionIds();
+        System.out.println("Enter transaction ID:");
+        try {
+            var transactionId = Integer.parseInt(scanner.nextLine());
+            displayCoinsInTransaction(transactionId);
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid ID");
+        }
+    }
+
+    /**
+     * Displays all coins associated with a specific transaction.
+     *
+     * @param transactionId ID of the transaction whose coins should be displayed
+     */
+    private void displayCoinsInTransaction(Integer transactionId) {
+        var coinTransactions = repositoryFactory.getCoinTransactionRepository().getAll().stream()
+                .filter(ct -> ct.getTransaction().getId().equals(transactionId))
+                .toList();
+
+        if (coinTransactions.isEmpty()) {
+            System.out.println("No coins found in this transaction");
+        } else {
+            System.out.println("\nCoins in transaction:");
+            System.out.println(AsciiTable.getTable(coinTransactions, Arrays.asList(
+                    new Column().header("Coin ID").with(ct -> Integer.toString(ct.getCoin().getId())),
+                    new Column().header("Name").with(ct -> ct.getCoin().getCoinName()),
+                    new Column().header("Material").with(ct -> ct.getCoin().getCoinMaterial()),
+                    new Column().header("Year").with(ct -> Integer.toString(ct.getCoin().getCoinYear())),
+                    new Column().header("Country").with(ct -> ct.getCoin().getOriginCountry())
+            )));
         }
     }
 }

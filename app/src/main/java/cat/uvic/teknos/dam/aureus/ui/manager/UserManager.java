@@ -15,11 +15,15 @@ import java.time.LocalDateTime;
  * Manages user operations through a command-line interface.
  * Provides functionality for creating, reading, and deleting users.
  * Uses ASCII tables for displaying user information in a formatted manner.
+ *  @author Pau Vilardell
+ *  @version 1.0
+ *  @since 2025-06-04
  */
 public class UserManager {
     private ModelFactory modelFactory;
     private RepositoryFactory repositoryFactory;
     private Scanner scanner;
+
 
     /**
      * Constructs a new UserManager with the required dependencies.

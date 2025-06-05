@@ -9,17 +9,37 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Scanner;
 
+/**
+ * Manages coin collections in the AUREUS system.
+ * Provides functionality for creating, viewing, updating and deleting collections,
+ * as well as managing coins within collections.
+ *
+ * @author Pau Vilardell
+ * @version 1.0
+ * @since 2025-06-05
+ */
 public class CollectionManager {
     private final ModelFactory modelFactory;
     private final RepositoryFactory repositoryFactory;
     private final Scanner scanner;
 
+    /**
+     * Constructs a new CollectionManager with the necessary dependencies.
+     *
+     * @param modelFactory Factory for creating domain model objects
+     * @param repositoryFactory Factory for accessing data repositories
+     * @param scanner Scanner for reading user input
+     */
     public CollectionManager(ModelFactory modelFactory, RepositoryFactory repositoryFactory, Scanner scanner) {
         this.modelFactory = modelFactory;
         this.repositoryFactory = repositoryFactory;
         this.scanner = scanner;
     }
 
+    /**
+     * Runs the main collection management interface.
+     * Provides a menu-driven interface for all collection-related operations.
+     */
     public void run() {
         while (true) {
             System.out.println("\n=== Collection Management ===");
@@ -54,6 +74,10 @@ public class CollectionManager {
         }
     }
 
+    /**
+     * Displays all available collections in a formatted table.
+     * If no collections exist, displays an appropriate message.
+     */
     private void displayAllCollections() {
         var collections = repositoryFactory.getCollectionRepository().getAll();
         if (collections.isEmpty()) {
@@ -70,6 +94,10 @@ public class CollectionManager {
         System.out.println("----------------------------------------");
     }
 
+    /**
+     * Displays detailed information about a specific collection.
+     * Shows both collection details and the coins it contains.
+     */
     private void viewCollectionDetails() {
         displayAllCollections();
         System.out.println("\nEnter collection ID:");
@@ -82,6 +110,11 @@ public class CollectionManager {
         }
     }
 
+    /**
+     * Displays detailed information about a collection given its ID.
+     *
+     * @param id The ID of the collection to display
+     */
     private void displayCollectionDetails(Integer id) {
         var collection = repositoryFactory.getCollectionRepository().get(id);
         if (collection != null) {
@@ -96,6 +129,11 @@ public class CollectionManager {
         }
     }
 
+    /**
+     * Displays all coins that belong to a specific collection.
+     *
+     * @param collectionId The ID of the collection whose coins should be displayed
+     */
     private void displayCollectionCoins(Integer collectionId) {
         var coinCollections = repositoryFactory.getCoinCollectionRepository().findByCollectionId(collectionId);
         if (!coinCollections.isEmpty()) {
@@ -111,6 +149,10 @@ public class CollectionManager {
         }
     }
 
+    /**
+     * Creates a new collection by gathering information from user input.
+     * Validates the input and saves the new collection to the repository.
+     */
     private void createNewCollection() {
         System.out.println("\nEnter new collection details:");
 
@@ -133,6 +175,10 @@ public class CollectionManager {
         displayCollectionDetails(newCollection.getId());
     }
 
+    /**
+     * Deletes an existing collection after confirmation from the user.
+     * Shows collection details before deletion for verification.
+     */
     private void deleteCollection() {
         displayAllCollections();
         System.out.println("\nEnter collection ID to delete:");
@@ -158,6 +204,10 @@ public class CollectionManager {
         }
     }
 
+    /**
+     * Adds a coin to an existing collection.
+     * Displays available coins and allows user to select one to add.
+     */
     private void addCoinToCollection() {
         displayAllCollections();
         System.out.print("\nEnter collection ID: ");
@@ -202,6 +252,10 @@ public class CollectionManager {
         }
     }
 
+    /**
+     * Removes a coin from an existing collection.
+     * Shows coins in the collection and allows user to select one to remove.
+     */
     private void removeCoinFromCollection() {
         displayAllCollections();
         System.out.print("\nEnter collection ID: ");

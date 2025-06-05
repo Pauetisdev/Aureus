@@ -12,6 +12,9 @@ import java.util.Scanner;
 /**
  * Manages the visualization of coin transactions in the system.
  * This class provides a read-only interface to view coin transaction information.
+ * @author Pau Vilardell
+ * @version 1.0
+ * @since 2025-06-05
  */
 public class CoinTransactionManager {
     private final ModelFactory modelFactory;

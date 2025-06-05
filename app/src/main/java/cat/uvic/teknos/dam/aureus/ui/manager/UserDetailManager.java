@@ -19,6 +19,7 @@ import java.util.Set;
  * This class provides a command-line interface for managing user details in the system.
  *
  * @author Pau Vilardell
+ * @version 1.0
  * @since 2025-06-04
  */
 public class UserDetailManager {

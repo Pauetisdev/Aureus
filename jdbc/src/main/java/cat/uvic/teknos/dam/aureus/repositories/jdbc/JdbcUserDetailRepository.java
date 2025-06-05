@@ -29,7 +29,6 @@ public class JdbcUserDetailRepository implements UserDetailRepository {
 
             preparedStatement.setInt(1, userDetail.getId());
 
-            // ✅ Usa LocalDate directamente
             LocalDate birthdate = userDetail.getBirthdate();
             if (birthdate != null) {
                 preparedStatement.setDate(2, Date.valueOf(birthdate)); // LocalDate -> java.sql.Date

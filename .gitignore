@@ -4,4 +4,12 @@
 # Ignore Gradle build output directory
 build
 
+# Ignore IntelliJ IDEA project files
 .idea
+
+# Ignore configuration and sensitive files
+*.properties
+!gradle.properties
+
+# Ignore database files
+*.db
