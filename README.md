@@ -16,6 +16,11 @@
 Aureus es un proyecto de software modular desarrollado en Java que sigue un enfoque de arquitectura limpia. Su objetivo principal es ofrecer una solución robusta y escalable para la gestión y manipulación de datos almacenados en bases de datos. El proyecto soporta la persistencia de datos mediante dos tecnologías muy utilizadas: JPA (Java Persistence API) y JDBC (Java Database Connectivity). Esta doble opción permite a los desarrolladores elegir la mejor alternativa según el caso de uso o las necesidades de rendimiento.
 
 Diseñado pensando en la extensibilidad y mantenibilidad, Aureus separa las responsabilidades en módulos bien definidos, facilitando la incorporación de nuevas funcionalidades o la modificación de las existentes sin afectar al sistema completo. La arquitectura promueve principios de código limpio y fomenta las mejores prácticas en el diseño de software.
+
+## 📚 Documentación
+
+**[🔗 Ver documentación completa (Javadoc)](https://courageous-baklava-e567dd.netlify.app/)**
+
 ## 🏗️ Estructura del Proyecto
 El proyecto se organiza en módulos independientes para facilitar el desarrollo y mantenimiento:
 

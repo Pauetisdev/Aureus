@@ -21,3 +21,14 @@ application {
     // Define the main class for the application.
     mainClass = "cat.uvic.teknos.aureus.ui.App"
 }
+// Configure Javadoc
+tasks.javadoc {
+    title = "Aureus - Documentación"
+    options.encoding = "UTF-8"
+    (options as StandardJavadocDocletOptions).apply {
+        charset("UTF-8")
+        encoding = "UTF-8"
+        author(true)
+        version(true)
+    }
+}
