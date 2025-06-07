@@ -18,21 +18,23 @@ class JdbcUserRepositoryIT {
 
     @BeforeAll
     void setupDatabase() throws Exception {
-        String driver = "org.h2.Driver";
-        String server = "jdbc:h2:mem:";
+        String driver = "h2";
+        String server = "mem";
         String database = "testdbUser;DB_CLOSE_DELAY=-1";
         String user = "sa";
         String password = "";
+        var format = "jdbc:%s:%s:%s";
 
-        dataSource = new SingleConnectionDataSource(driver, server, database, user, password);
+        dataSource = new SingleConnectionDataSource(format, driver, server, database, user, password);
 
         try (var conn = dataSource.getConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute("""
-                CREATE TABLE USER (
+                CREATE TABLE "USER" (
                     USER_ID INT AUTO_INCREMENT PRIMARY KEY,
                     USERNAME VARCHAR(100) NOT NULL,
                     EMAIL VARCHAR(100) UNIQUE NOT NULL,
-                    PASSWORD_HASH VARCHAR(255) NOT NULL
+                    PASSWORD_HASH VARCHAR(255) NOT NULL,
+                    JOIN_DATE TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             """);
         }
@@ -43,7 +45,7 @@ class JdbcUserRepositoryIT {
     @AfterEach
     void clearTable() throws Exception {
         try (var conn = dataSource.getConnection(); Statement stmt = conn.createStatement()) {
-            stmt.executeUpdate("DELETE FROM USER");
+            stmt.executeUpdate("DELETE FROM \"USER\"");
         }
     }
 

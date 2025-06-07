@@ -16,6 +16,4 @@ public interface Collection {
     User getUser();
     void setUser(User user);
 
-    List<CoinCollection> getCoinCollections();
-    void setCoinCollections(List<CoinCollection> coinCollections);
 }

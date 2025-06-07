@@ -9,18 +9,19 @@ import cat.uvic.teknos.dam.aureus.repositories.CoinTransactionRepository;
 import cat.uvic.teknos.dam.aureus.repositories.TransactionRepository;
 import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.DataSource;
 import cat.uvic.teknos.dam.aureus.repositories.jdbc.exceptions.CrudException;
+import java.util.List;
+import java.util.ArrayList;
 
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Set;
 
 public class JdbcCoinTransactionRepository implements CoinTransactionRepository {
-
     private final DataSource dataSource;
-    private CoinRepository coinRepository;
-    private TransactionRepository transactionRepository;
+    private final CoinRepository coinRepository;
+    private final TransactionRepository transactionRepository;
 
-    public JdbcCoinTransactionRepository(DataSource dataSource) {
+    public JdbcCoinTransactionRepository(DataSource dataSource, CoinRepository coinRepository, TransactionRepository transactionRepository) {
         this.dataSource = dataSource;
         this.coinRepository = coinRepository;
         this.transactionRepository = transactionRepository;
@@ -68,21 +69,26 @@ public class JdbcCoinTransactionRepository implements CoinTransactionRepository 
     @Override
     public Set<CoinTransaction> getAll() {
         Set<CoinTransaction> coinTransactions = new HashSet<>();
-        try (var connection = dataSource.getConnection();
-             var ps = connection.prepareStatement("SELECT * FROM COIN_TRANSACTION");
-             var rs = ps.executeQuery()) {
-
+        List<int[]> ids = new ArrayList<>();
+        String sql = "SELECT COIN_ID, TRANSACTION_ID FROM COIN_TRANSACTION";
+        try (
+                var conn = dataSource.getConnection();
+                var stmt = conn.prepareStatement(sql);
+                var rs = stmt.executeQuery()
+        ) {
             while (rs.next()) {
-                Coin coin = coinRepository.get(rs.getInt("COIN_ID"));
-                Transaction transaction = transactionRepository.get(rs.getInt("TRANSACTION_ID"));
-                var coinTransaction = new CoinTransactionImpl();
-                coinTransaction.setCoin(coin);
-                coinTransaction.setTransaction(transaction);
-                coinTransactions.add(coinTransaction);
+                ids.add(new int[]{rs.getInt("COIN_ID"), rs.getInt("TRANSACTION_ID")});
             }
-
         } catch (SQLException e) {
             throw new CrudException("Error getting all CoinTransactions", e);
+        }
+        for (var idPair : ids) {
+            Coin coin = coinRepository.get(idPair[0]);
+            Transaction transaction = transactionRepository.get(idPair[1]);
+            CoinTransactionImpl coinTransaction = new CoinTransactionImpl();
+            coinTransaction.setCoin(coin);
+            coinTransaction.setTransaction(transaction);
+            coinTransactions.add(coinTransaction);
         }
         return coinTransactions;
     }

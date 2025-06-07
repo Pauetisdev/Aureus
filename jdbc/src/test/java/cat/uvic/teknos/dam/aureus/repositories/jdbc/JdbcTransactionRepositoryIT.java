@@ -5,7 +5,7 @@ import cat.uvic.teknos.dam.aureus.User;
 import cat.uvic.teknos.dam.aureus.impl.TransactionImpl;
 import cat.uvic.teknos.dam.aureus.repositories.UserRepository;
 import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.DataSource;
-import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.SingleConnectionDataSource;
+import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.SimpleDriverManagerDataSource;
 import org.junit.jupiter.api.*;
 
 import java.sql.Connection;
@@ -24,36 +24,37 @@ public class JdbcTransactionRepositoryIT {
 
     @BeforeAll
     void setupDatabase() throws SQLException {
-        // Parámetros de conexión H2 en memoria
-        String driver = "org.h2.Driver";
-        String server = "jdbc:h2:mem:";
+        String driver = "h2";
+        String server = "mem";
         String database = "testdb;DB_CLOSE_DELAY=-1";
         String user = "sa";
         String password = "";
+        var format = "jdbc:%s:%s:%s";
 
-        // Inicializamos SingleConnectionDataSource
-        DataSource dataSource = new SingleConnectionDataSource(driver, server, database, user, password);
+        DataSource dataSource = new SimpleDriverManagerDataSource(
+                String.format(format, driver, server, database), user, password
+        );
 
         try (Connection conn = dataSource.getConnection(); Statement st = conn.createStatement()) {
-            // Crear tabla USER con columnas reales
-            st.execute("CREATE TABLE USER (" +
+            // Usar "USER" entre comillas dobles
+            st.execute("CREATE TABLE \"USER\" (" +
                     "USER_ID INT PRIMARY KEY AUTO_INCREMENT, " +
                     "USERNAME VARCHAR(255), " +
                     "EMAIL VARCHAR(255), " +
-                    "PASSWORD VARCHAR(255))");
+                    "PASSWORD_HASH VARCHAR(255), " +
+                    "JOIN_DATE TIMESTAMP)");
 
-            // Crear tabla TRANSACTION con claves foráneas
-            st.execute("CREATE TABLE TRANSACTION (" +
+            // También TRANSACTION es reservada, así que ponla entre comillas dobles
+            st.execute("CREATE TABLE \"TRANSACTION\" (" +
                     "TRANSACTION_ID INT PRIMARY KEY AUTO_INCREMENT, " +
                     "TRANSACTION_DATE TIMESTAMP, " +
                     "BUYER_ID INT, " +
                     "SELLER_ID INT, " +
-                    "FOREIGN KEY (BUYER_ID) REFERENCES USER(USER_ID), " +
-                    "FOREIGN KEY (SELLER_ID) REFERENCES USER(USER_ID))");
+                    "FOREIGN KEY (BUYER_ID) REFERENCES \"USER\"(USER_ID), " +
+                    "FOREIGN KEY (SELLER_ID) REFERENCES \"USER\"(USER_ID))");
 
-            // Insertar usuarios
-            st.execute("INSERT INTO USER (USERNAME, EMAIL, PASSWORD) VALUES ('buyer', 'buyer@example.com', 'pass')");
-            st.execute("INSERT INTO USER (USERNAME, EMAIL, PASSWORD) VALUES ('seller', 'seller@example.com', 'pass')");
+            st.execute("INSERT INTO \"USER\" (USERNAME, EMAIL, PASSWORD_HASH) VALUES ('buyer', 'buyer@example.com', 'pass')");
+            st.execute("INSERT INTO \"USER\" (USERNAME, EMAIL, PASSWORD_HASH) VALUES ('seller', 'seller@example.com', 'pass')");
         }
 
         userRepository = new JdbcUserRepository(dataSource);

@@ -5,7 +5,6 @@ import cat.uvic.teknos.dam.aureus.CoinTransaction;
 import cat.uvic.teknos.dam.aureus.Transaction;
 import cat.uvic.teknos.dam.aureus.impl.CoinImpl;
 import cat.uvic.teknos.dam.aureus.impl.CoinTransactionImpl;
-import cat.uvic.teknos.dam.aureus.impl.TransactionImpl;
 import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.SingleConnectionDataSource;
 import org.junit.jupiter.api.*;
 
@@ -29,21 +28,23 @@ class JdbcCoinTransactionRepositoryIT {
 
     @BeforeAll
     void setupDatabase() throws Exception {
-        // Parámetros de conexión H2 en memoria
-        String driver = "org.h2.Driver";
-        String server = "jdbc:h2:mem:";
+        String driver = "h2";
+        String server = "mem";
         String database = "testdb;DB_CLOSE_DELAY=-1";
         String user = "sa";
         String password = "";
+        var format = "jdbc:%s:%s:%s";
 
-        // Inicializar dataSource
-        dataSource = new SingleConnectionDataSource(driver, server, database, user, password);
+        dataSource = new SingleConnectionDataSource(format, driver, server, database, user, password);
 
         try (var conn = dataSource.getConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute("""
-                CREATE TABLE USER (
+                CREATE TABLE "USER" (
                     USER_ID INT AUTO_INCREMENT PRIMARY KEY,
-                    NAME VARCHAR(100)
+                    USERNAME VARCHAR(100) NOT NULL,
+                    EMAIL VARCHAR(100) NOT NULL,
+                    PASSWORD_HASH VARCHAR(100) NOT NULL,
+                    JOIN_DATE TIMESTAMP NOT NULL
                 );
             """);
 
@@ -57,7 +58,8 @@ class JdbcCoinTransactionRepositoryIT {
                     COIN_DIAMETER DECIMAL(10,2) NOT NULL,
                     ESTIMATED_VALUE DECIMAL(10,2) NOT NULL,
                     ORIGIN_COUNTRY VARCHAR(50) NOT NULL,
-                    HISTORICAL_SIGNIFICANCE TEXT
+                    HISTORICAL_SIGNIFICANCE TEXT,
+                    COLLECTION_ID INT
                 );
             """);
 
@@ -67,8 +69,8 @@ class JdbcCoinTransactionRepositoryIT {
                     TRANSACTION_DATE TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     BUYER_ID INT NOT NULL,
                     SELLER_ID INT NOT NULL,
-                    FOREIGN KEY (BUYER_ID) REFERENCES USER(USER_ID),
-                    FOREIGN KEY (SELLER_ID) REFERENCES USER(USER_ID)
+                    FOREIGN KEY (BUYER_ID) REFERENCES "USER"(USER_ID),
+                    FOREIGN KEY (SELLER_ID) REFERENCES "USER"(USER_ID)
                 );
             """);
 
@@ -86,12 +88,11 @@ class JdbcCoinTransactionRepositoryIT {
         coinRepository = new JdbcCoinRepository(dataSource);
         userRepository = new JdbcUserRepository(dataSource);
         transactionRepository = new JdbcTransactionRepository(dataSource, userRepository);
-        coinTransactionRepository = new JdbcCoinTransactionRepository(dataSource);
+        coinTransactionRepository = new JdbcCoinTransactionRepository(dataSource, coinRepository, transactionRepository);
     }
 
     @BeforeEach
     void insertData() throws Exception {
-        // Crear y guardar moneda
         CoinImpl coin = new CoinImpl();
         coin.setCoinName("Denario");
         coin.setCoinYear(100);
@@ -110,9 +111,15 @@ class JdbcCoinTransactionRepositoryIT {
             int sellerId;
 
             try (var stmt = conn.prepareStatement(
-                    "INSERT INTO USER (NAME) VALUES (?), (?)", Statement.RETURN_GENERATED_KEYS)) {
+                    "INSERT INTO \"USER\" (USERNAME, EMAIL, PASSWORD_HASH, JOIN_DATE) VALUES (?, ?, ?, ?), (?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
                 stmt.setString(1, "Comprador");
-                stmt.setString(2, "Venedor");
+                stmt.setString(2, "comprador@email.com");
+                stmt.setString(3, "password1");
+                stmt.setTimestamp(4, java.sql.Timestamp.valueOf("2024-01-01 00:00:00"));
+                stmt.setString(5, "Venedor");
+                stmt.setString(6, "venedor@email.com");
+                stmt.setString(7, "password2");
+                stmt.setTimestamp(8, java.sql.Timestamp.valueOf("2024-01-02 00:00:00"));
                 stmt.executeUpdate();
 
                 try (var rs = stmt.getGeneratedKeys()) {
@@ -144,7 +151,7 @@ class JdbcCoinTransactionRepositoryIT {
             stmt.executeUpdate("DELETE FROM COIN_TRANSACTION");
             stmt.executeUpdate("DELETE FROM TRANSACTION");
             stmt.executeUpdate("DELETE FROM COIN");
-            stmt.executeUpdate("DELETE FROM USER");
+            stmt.executeUpdate("DELETE FROM \"USER\"");
         }
     }
 

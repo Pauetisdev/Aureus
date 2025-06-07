@@ -1,6 +1,7 @@
 package cat.uvic.teknos.dam.aureus.repositories.jdbc;
 
 import cat.uvic.teknos.dam.aureus.Transaction;
+import cat.uvic.teknos.dam.aureus.User;
 import cat.uvic.teknos.dam.aureus.impl.TransactionImpl;
 import cat.uvic.teknos.dam.aureus.repositories.TransactionRepository;
 import cat.uvic.teknos.dam.aureus.repositories.UserRepository;
@@ -35,7 +36,6 @@ public class JdbcTransactionRepository implements TransactionRepository {
             throw new InvalidDataException("Buyer and Seller must be set");
         }
 
-        // Verificar que existen los usuarios
         if (userRepository.get(transaction.getBuyer().getId()) == null ||
                 userRepository.get(transaction.getSeller().getId()) == null) {
             throw new EntityNotFoundException("Buyer or Seller not found");
@@ -64,7 +64,6 @@ public class JdbcTransactionRepository implements TransactionRepository {
                 throw new RepositoryException("Failed to save transaction");
             }
 
-            // Obtener ID generado para inserciones
             if (transaction.getId() == null) {
                 try (var rs = ps.getGeneratedKeys()) {
                     if (rs.next()) {
@@ -101,39 +100,50 @@ public class JdbcTransactionRepository implements TransactionRepository {
 
     @Override
     public Transaction get(Integer id) {
-        if (id == null) {
-            throw new InvalidDataException("Transaction ID cannot be null");
-        }
-
         String sql = "SELECT * FROM TRANSACTION WHERE TRANSACTION_ID = ?";
-        try (var connection = dataSource.getConnection();
-             var ps = connection.prepareStatement(sql)) {
-
-            ps.setInt(1, id);
-            try (var rs = ps.executeQuery()) {
+        try (var conn = dataSource.getConnection();
+             var stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            try (var rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    return mapTransaction(rs);
-                } else {
-                    throw new EntityNotFoundException("Transaction not found with ID " + id);
+                    int transactionId = rs.getInt("TRANSACTION_ID");
+                    Timestamp transactionDate = rs.getTimestamp("TRANSACTION_DATE");
+                    int buyerId = rs.getInt("BUYER_ID");
+                    int sellerId = rs.getInt("SELLER_ID");
+                    return buildTransaction(transactionId, transactionDate, buyerId, sellerId);
                 }
             }
-
         } catch (SQLException e) {
             throw new RepositoryException("Error getting transaction", e);
         }
+        return null;
     }
 
     @Override
     public Set<Transaction> getAll() {
         Set<Transaction> transactions = new HashSet<>();
-        String sql = "SELECT * FROM TRANSACTION";
+        String sql = "SELECT * FROM \"TRANSACTION\"";
 
-        try (var connection = dataSource.getConnection();
-             var ps = connection.prepareStatement(sql);
-             var rs = ps.executeQuery()) {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement st = conn.prepareStatement(sql);
+             ResultSet rs = st.executeQuery()) {
 
             while (rs.next()) {
-                transactions.add(mapTransaction(rs));
+                int transactionId = rs.getInt("TRANSACTION_ID");
+                Timestamp transactionDate = rs.getTimestamp("TRANSACTION_DATE");
+                int buyerId = rs.getInt("BUYER_ID");
+                int sellerId = rs.getInt("SELLER_ID");
+                // Aquí puedes llamar a userRepository.get porque abre su propia conexión
+                User buyer = userRepository.get(buyerId);
+                User seller = userRepository.get(sellerId);
+
+                Transaction tx = new TransactionImpl();
+                tx.setId(transactionId);
+                tx.setTransactionDate(transactionDate);
+                tx.setBuyer(buyer);
+                tx.setSeller(seller);
+
+                transactions.add(tx);
             }
 
         } catch (SQLException e) {
@@ -143,7 +153,6 @@ public class JdbcTransactionRepository implements TransactionRepository {
         return transactions;
     }
 
-    @Override
     public List<Transaction> findByDateRange(Timestamp start, Timestamp end) {
         if (start == null || end == null) {
             throw new InvalidDataException("Start and End timestamps cannot be null");
@@ -160,7 +169,11 @@ public class JdbcTransactionRepository implements TransactionRepository {
 
             try (var rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    transactions.add(mapTransaction(rs));
+                    int transactionId = rs.getInt("TRANSACTION_ID");
+                    Timestamp transactionDate = rs.getTimestamp("TRANSACTION_DATE");
+                    int buyerId = rs.getInt("BUYER_ID");
+                    int sellerId = rs.getInt("SELLER_ID");
+                    transactions.add(buildTransaction(transactionId, transactionDate, buyerId, sellerId));
                 }
             }
 
@@ -171,13 +184,13 @@ public class JdbcTransactionRepository implements TransactionRepository {
         return transactions;
     }
 
-    private Transaction mapTransaction(ResultSet rs) throws SQLException {
+    private Transaction buildTransaction(int id, Timestamp date, int buyerId, int sellerId) {
         var transaction = new TransactionImpl();
-        transaction.setId(rs.getInt("TRANSACTION_ID"));
-        transaction.setTransactionDate(rs.getTimestamp("TRANSACTION_DATE"));
+        transaction.setId(id);
+        transaction.setTransactionDate(date);
 
-        var buyer = userRepository.get(rs.getInt("BUYER_ID"));
-        var seller = userRepository.get(rs.getInt("SELLER_ID"));
+        var buyer = userRepository.get(buyerId);
+        var seller = userRepository.get(sellerId);
 
         if (buyer == null || seller == null) {
             throw new EntityNotFoundException("Buyer or Seller not found");

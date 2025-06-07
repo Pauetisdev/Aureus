@@ -20,17 +20,19 @@ class JdbcCoinRepositoryIT {
 
     private static CoinRepository repository;
     private static Connection connection;
+    private static SingleConnectionDataSource dataSource;
 
     @BeforeAll
     static void setupDatabase() throws SQLException {
 
-        String driver = "org.h2.Driver";
-        String server = "jdbc:h2:mem:";
+        String driver = "h2";
+        String server = "mem";
         String database = "testdb;DB_CLOSE_DELAY=-1";
         String user = "sa";
         String password = "";
+        var format = "jdbc:%s:%s:%s";
 
-        var dataSource = new SingleConnectionDataSource(driver, server, database, user, password);
+        dataSource = new SingleConnectionDataSource(format, driver, server, database, user, password);
 
         connection = dataSource.getConnection();
         repository = new JdbcCoinRepository(dataSource);
@@ -56,7 +58,8 @@ class JdbcCoinRepositoryIT {
 
     @AfterEach
     void cleanup() throws SQLException {
-        try (Statement stmt = connection.createStatement()) {
+        try (var conn = dataSource.getConnection();
+             Statement stmt = conn.createStatement()) {
             stmt.execute("DELETE FROM COIN");
         }
     }

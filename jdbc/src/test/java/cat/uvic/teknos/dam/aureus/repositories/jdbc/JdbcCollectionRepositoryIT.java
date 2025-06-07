@@ -27,32 +27,32 @@ public class JdbcCollectionRepositoryIT {
     @BeforeAll
     void setup() throws SQLException {
         // Configuración de conexión H2 in-memory
-        String driver = "org.h2.Driver";
-        String server = "jdbc:h2:mem:";
+        String driver = "h2";
+        String server = "mem";
         String database = "testdb;DB_CLOSE_DELAY=-1";
         String user = "sa";
         String password = "";
+        var format = "jdbc:%s:%s:%s";
 
-        dataSource = new SingleConnectionDataSource(driver, server, database, user, password);
+        dataSource = new SingleConnectionDataSource(format, driver, server, database, user, password);
 
         try (Connection conn = dataSource.getConnection(); Statement st = conn.createStatement()) {
             // Tabla USER
-            st.execute("CREATE TABLE USER (" +
+            st.execute("CREATE TABLE \"USER\" (" +
                     "USER_ID INT PRIMARY KEY AUTO_INCREMENT, " +
                     "USERNAME VARCHAR(255), " +
                     "EMAIL VARCHAR(255), " +
-                    "PASSWORD VARCHAR(255))");
+                    "PASSWORD_HASH VARCHAR(255), " +
+                    "JOIN_DATE TIMESTAMP)");
 
-            // Tabla COLLECTION
             st.execute("CREATE TABLE COLLECTION (" +
                     "COLLECTION_ID INT PRIMARY KEY AUTO_INCREMENT, " +
                     "COLLECTION_NAME VARCHAR(255), " +
                     "DESCRIPTION TEXT, " +
                     "USER_ID INT, " +
-                    "FOREIGN KEY (USER_ID) REFERENCES USER(USER_ID))");
+                    "FOREIGN KEY (USER_ID) REFERENCES \"USER\"(USER_ID))");
 
-            // Insertar usuario dummy
-            st.execute("INSERT INTO USER (USERNAME, EMAIL, PASSWORD) VALUES ('user1', 'user1@example.com', '1234')");
+            st.execute("INSERT INTO \"USER\" (USERNAME, EMAIL, PASSWORD_HASH, JOIN_DATE) VALUES ('user1', 'user1@example.com', '1234', CURRENT_TIMESTAMP)");
         }
 
         userRepository = new JdbcUserRepository(dataSource);
@@ -66,7 +66,7 @@ public class JdbcCollectionRepositoryIT {
         Collection collection = new CollectionImpl();
         collection.setCollectionName("Monedas Romanas");
         collection.setDescription("Colección de denarios y áureos.");
-        collection.setId(user.getId()); // ID del usuario
+        collection.setUser(user);
 
         collectionRepository.save(collection);
 
@@ -76,6 +76,6 @@ public class JdbcCollectionRepositoryIT {
         Collection retrieved = all.iterator().next();
         assertEquals("Monedas Romanas", retrieved.getCollectionName());
         assertEquals("Colección de denarios y áureos.", retrieved.getDescription());
-        assertEquals(user.getId(), retrieved.getId());
+        assertEquals(user.getId(), retrieved.getUser().getId());
     }
 }

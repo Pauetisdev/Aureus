@@ -13,15 +13,20 @@ import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.SingleConnection
 
 public class JdbcRepositoryFactory implements RepositoryFactory {
     private final DataSource dataSource;
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final CoinRepository coinRepository;
+    private final CollectionRepository collectionRepository;
 
     public JdbcRepositoryFactory() {
         this.dataSource = new SingleConnectionDataSource();
+        this.userRepository = new JdbcUserRepository(dataSource);
+        this.coinRepository = new JdbcCoinRepository(dataSource);
+        this.collectionRepository = new JdbcCollectionRepository(dataSource, userRepository);
     }
 
     @Override
     public UserRepository getUserRepository() {
-        return new JdbcUserRepository(dataSource);
+        return userRepository;
     }
 
     @Override
@@ -31,12 +36,12 @@ public class JdbcRepositoryFactory implements RepositoryFactory {
 
     @Override
     public CollectionRepository getCollectionRepository() {
-        return new JdbcCollectionRepository(dataSource, userRepository);
+        return collectionRepository;
     }
 
     @Override
     public CoinRepository getCoinRepository() {
-        return new JdbcCoinRepository(dataSource);
+        return coinRepository;
     }
 
     @Override
@@ -44,14 +49,13 @@ public class JdbcRepositoryFactory implements RepositoryFactory {
         return new JdbcTransactionRepository(dataSource, userRepository);
     }
 
-
     @Override
     public CoinCollectionRepository getCoinCollectionRepository() {
-        return new JdbcCoinCollectionRepository(dataSource);
+        return new JdbcCoinCollectionRepository(dataSource, coinRepository, collectionRepository);
     }
 
     @Override
     public CoinTransactionRepository getCoinTransactionRepository() {
-        return new JdbcCoinTransactionRepository(dataSource);
+        return new JdbcCoinTransactionRepository(dataSource, coinRepository, getTransactionRepository());
     }
 }

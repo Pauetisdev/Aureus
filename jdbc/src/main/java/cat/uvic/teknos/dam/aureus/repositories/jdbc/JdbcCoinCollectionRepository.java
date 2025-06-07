@@ -9,27 +9,21 @@ import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.DataSource;
 import cat.uvic.teknos.dam.aureus.repositories.jdbc.exceptions.CrudException;
 import cat.uvic.teknos.dam.aureus.repositories.jdbc.exceptions.EntityNotFoundException;
 import cat.uvic.teknos.dam.aureus.repositories.jdbc.exceptions.InvalidDataException;
-import cat.uvic.teknos.dam.aureus.repositories.jdbc.model.JdbcCoinCollection;
 
 import java.sql.SQLException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.ArrayList;
+import java.util.*;
 
 public class JdbcCoinCollectionRepository implements CoinCollectionRepository {
 
     private final DataSource dataSource;
-    private CoinRepository coinRepository = null;
-    private CollectionRepository collectionRepository = null;
+    private final CoinRepository coinRepository;
+    private final CollectionRepository collectionRepository;
 
-
-    public JdbcCoinCollectionRepository(DataSource dataSource) {
-        throw new InvalidDataException("DataSource, CoinRepository, and CollectionRepository cannot be null");
-    }
-
-    public JdbcCoinCollectionRepository(DataSource dataSource, DataSource dataSource1, CoinRepository coinRepository, CollectionRepository collectionRepository) {
-        this.dataSource = dataSource1;
+    public JdbcCoinCollectionRepository(DataSource dataSource, CoinRepository coinRepository, CollectionRepository collectionRepository) {
+        if (dataSource == null || coinRepository == null || collectionRepository == null) {
+            throw new InvalidDataException("DataSource, CoinRepository, and CollectionRepository cannot be null");
+        }
+        this.dataSource = dataSource;
         this.coinRepository = coinRepository;
         this.collectionRepository = collectionRepository;
     }
@@ -39,10 +33,9 @@ public class JdbcCoinCollectionRepository implements CoinCollectionRepository {
         if (value == null || value.getCoin() == null || value.getCollection() == null) {
             throw new InvalidDataException("CoinCollection or its components cannot be null");
         }
-
         try (var connection = dataSource.getConnection();
              var ps = connection.prepareStatement(
-                     "INSERT INTO COINS_COLLECTION (COIN_ID, COLLECTION_ID) VALUES (?, ?)")) {
+                     "INSERT INTO COIN_COLLECTION (COIN_ID, COLLECTION_ID) VALUES (?, ?)")) {
             ps.setInt(1, value.getCoin().getId());
             ps.setInt(2, value.getCollection().getId());
             ps.executeUpdate();
@@ -56,10 +49,9 @@ public class JdbcCoinCollectionRepository implements CoinCollectionRepository {
         if (value == null || value.getCoin() == null || value.getCollection() == null) {
             throw new InvalidDataException("CoinCollection or its components cannot be null");
         }
-
         try (var connection = dataSource.getConnection();
              var ps = connection.prepareStatement(
-                     "DELETE FROM COINS_COLLECTION WHERE COIN_ID = ? AND COLLECTION_ID = ?")) {
+                     "DELETE FROM COIN_COLLECTION WHERE COIN_ID = ? AND COLLECTION_ID = ?")) {
             ps.setInt(1, value.getCoin().getId());
             ps.setInt(2, value.getCollection().getId());
             ps.executeUpdate();
@@ -76,29 +68,29 @@ public class JdbcCoinCollectionRepository implements CoinCollectionRepository {
 
     @Override
     public Set<CoinCollection> getAll() {
-        var coinCollections = new HashSet<CoinCollection>();
-
+        Set<CoinCollection> coinCollections = new HashSet<>();
+        List<int[]> ids = new ArrayList<>();
         try (var connection = dataSource.getConnection();
-             var ps = connection.prepareStatement("SELECT * FROM COINS_COLLECTION")) {
-
-            var rs = ps.executeQuery();
-
+             var ps = connection.prepareStatement("SELECT * FROM COIN_COLLECTION");
+             var rs = ps.executeQuery()) {
             while (rs.next()) {
-                var coin = coinRepository.get(rs.getInt("COIN_ID"));
-                if (coin == null) throw new EntityNotFoundException("Coin not found with ID " + rs.getInt("COIN_ID"));
-                var collection = collectionRepository.get(rs.getInt("COLLECTION_ID"));
-                if (collection == null) throw new EntityNotFoundException("Collection not found with ID " + rs.getInt("COLLECTION_ID"));
-
-                var coinCollection = new CoinCollectionImpl();
-                coinCollection.setCoin(coin);
-                coinCollection.setCollection(collection);
-
-                coinCollections.add(coinCollection);
+                int coinIdDb = rs.getInt("COIN_ID");
+                int collectionIdDb = rs.getInt("COLLECTION_ID");
+                ids.add(new int[]{coinIdDb, collectionIdDb});
             }
         } catch (SQLException e) {
             throw new CrudException("Error retrieving all CoinCollections", e);
         }
-
+        for (int[] pair : ids) {
+            var coin = coinRepository.get(pair[0]);
+            if (coin == null) throw new EntityNotFoundException("Coin not found with ID " + pair[0]);
+            var collection = collectionRepository.get(pair[1]);
+            if (collection == null) throw new EntityNotFoundException("Collection not found with ID " + pair[1]);
+            var coinCollection = new CoinCollectionImpl();
+            coinCollection.setCoin(coin);
+            coinCollection.setCollection(collection);
+            coinCollections.add(coinCollection);
+        }
         return coinCollections;
     }
 
@@ -108,22 +100,29 @@ public class JdbcCoinCollectionRepository implements CoinCollectionRepository {
             throw new InvalidDataException("Collection ID cannot be null");
         }
         List<CoinCollection> coinCollections = new ArrayList<>();
+        List<int[]> ids = new ArrayList<>();
         try (var connection = dataSource.getConnection();
-             var ps = connection.prepareStatement("SELECT * FROM COINS_COLLECTION WHERE COLLECTION_ID = ?")) {
+             var ps = connection.prepareStatement("SELECT * FROM COIN_COLLECTION WHERE COLLECTION_ID = ?")) {
             ps.setInt(1, collectionId);
-            var rs = ps.executeQuery();
-            while (rs.next()) {
-                JdbcCoinCollection cc = new JdbcCoinCollection();
-                var coin = coinRepository.get(rs.getInt("COIN_ID"));
-                if (coin == null) throw new EntityNotFoundException("Coin not found with ID " + rs.getInt("COIN_ID"));
-                var collection = collectionRepository.get(rs.getInt("COLLECTION_ID"));
-                if (collection == null) throw new EntityNotFoundException("Collection not found with ID " + rs.getInt("COLLECTION_ID"));
-                cc.setCoin(coin);
-                cc.setCollection(collection);
-                coinCollections.add(cc);
+            try (var rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    int coinIdDb = rs.getInt("COIN_ID");
+                    int collectionIdDb = rs.getInt("COLLECTION_ID");
+                    ids.add(new int[]{coinIdDb, collectionIdDb});
+                }
             }
         } catch (SQLException e) {
             throw new CrudException("Error finding CoinCollections by Collection ID", e);
+        }
+        for (int[] pair : ids) {
+            var coin = coinRepository.get(pair[0]);
+            if (coin == null) throw new EntityNotFoundException("Coin not found with ID " + pair[0]);
+            var collection = collectionRepository.get(pair[1]);
+            if (collection == null) throw new EntityNotFoundException("Collection not found with ID " + pair[1]);
+            var cc = new CoinCollectionImpl();
+            cc.setCoin(coin);
+            cc.setCollection(collection);
+            coinCollections.add(cc);
         }
         return coinCollections;
     }
@@ -134,22 +133,29 @@ public class JdbcCoinCollectionRepository implements CoinCollectionRepository {
             throw new InvalidDataException("Coin ID cannot be null");
         }
         List<CoinCollection> coinCollections = new ArrayList<>();
+        List<int[]> ids = new ArrayList<>();
         try (var connection = dataSource.getConnection();
-             var ps = connection.prepareStatement("SELECT * FROM COINS_COLLECTION WHERE COIN_ID = ?")) {
+             var ps = connection.prepareStatement("SELECT * FROM COIN_COLLECTION WHERE COIN_ID = ?")) {
             ps.setInt(1, coinId);
-            var rs = ps.executeQuery();
-            while (rs.next()) {
-                JdbcCoinCollection cc = new JdbcCoinCollection();
-                var coin = coinRepository.get(rs.getInt("COIN_ID"));
-                if (coin == null) throw new EntityNotFoundException("Coin not found with ID " + rs.getInt("COIN_ID"));
-                var collection = collectionRepository.get(rs.getInt("COLLECTION_ID"));
-                if (collection == null) throw new EntityNotFoundException("Collection not found with ID " + rs.getInt("COLLECTION_ID"));
-                cc.setCoin(coin);
-                cc.setCollection(collection);
-                coinCollections.add(cc);
+            try (var rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    int coinIdDb = rs.getInt("COIN_ID");
+                    int collectionIdDb = rs.getInt("COLLECTION_ID");
+                    ids.add(new int[]{coinIdDb, collectionIdDb});
+                }
             }
         } catch (SQLException e) {
             throw new CrudException("Error finding CoinCollections by Coin ID", e);
+        }
+        for (int[] pair : ids) {
+            var coin = coinRepository.get(pair[0]);
+            if (coin == null) throw new EntityNotFoundException("Coin not found with ID " + pair[0]);
+            var collection = collectionRepository.get(pair[1]);
+            if (collection == null) throw new EntityNotFoundException("Collection not found with ID " + pair[1]);
+            var cc = new CoinCollectionImpl();
+            cc.setCoin(coin);
+            cc.setCollection(collection);
+            coinCollections.add(cc);
         }
         return coinCollections;
     }

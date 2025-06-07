@@ -1,9 +1,9 @@
-
 package cat.uvic.teknos.dam.aureus.repositories.jdbc;
 
 import cat.uvic.teknos.dam.aureus.Collection;
 import cat.uvic.teknos.dam.aureus.User;
 import cat.uvic.teknos.dam.aureus.impl.CollectionImpl;
+import cat.uvic.teknos.dam.aureus.impl.UserImpl;
 import cat.uvic.teknos.dam.aureus.repositories.CollectionRepository;
 import cat.uvic.teknos.dam.aureus.repositories.UserRepository;
 import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.DataSource;
@@ -13,10 +13,6 @@ import java.sql.*;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- * JDBC implementation of CollectionRepository.
- * Handles database operations for collections, including user relationships.
- */
 public class JdbcCollectionRepository implements CollectionRepository {
 
     private final DataSource dataSource;
@@ -32,7 +28,6 @@ public class JdbcCollectionRepository implements CollectionRepository {
 
     @Override
     public void save(Collection collection) {
-        // Verificamos los datos necesarios
         if (collection == null) {
             throw new InvalidDataException("Collection cannot be null");
         }
@@ -41,7 +36,6 @@ public class JdbcCollectionRepository implements CollectionRepository {
             throw new InvalidDataException("Collection must have an associated user");
         }
 
-        // Verificamos que existe el usuario
         User user = userRepository.get(collection.getUser().getId());
         if (user == null) {
             throw new EntityNotFoundException("User not found with ID: " + collection.getUser().getId());
@@ -49,11 +43,9 @@ public class JdbcCollectionRepository implements CollectionRepository {
 
         String sql;
         if (collection.getId() == null) {
-            // Inserción de nueva colección
-            sql = "INSERT INTO COLLECTION (NAME, DESCRIPTION, USER_ID) VALUES (?, ?, ?)";
+            sql = "INSERT INTO COLLECTION (COLLECTION_NAME, DESCRIPTION, USER_ID) VALUES (?, ?, ?)";
         } else {
-            // Actualización de colección existente
-            sql = "UPDATE COLLECTION SET NAME = ?, DESCRIPTION = ?, USER_ID = ? WHERE COLLECTION_ID = ?";
+            sql = "UPDATE COLLECTION SET COLLECTION_NAME = ?, DESCRIPTION = ?, USER_ID = ? WHERE COLLECTION_ID = ?";
         }
 
         try (Connection conn = dataSource.getConnection();
@@ -72,7 +64,6 @@ public class JdbcCollectionRepository implements CollectionRepository {
                 throw new RepositoryException("Failed to save collection");
             }
 
-            // Obtenemos el ID generado para nuevas colecciones
             if (collection.getId() == null) {
                 try (ResultSet rs = ps.getGeneratedKeys()) {
                     if (rs.next()) {
@@ -115,7 +106,7 @@ public class JdbcCollectionRepository implements CollectionRepository {
 
         String sql = "SELECT c.*, u.USERNAME as USER_USERNAME " +
                 "FROM COLLECTION c " +
-                "JOIN USER u ON c.USER_ID = u.USER_ID " +
+                "JOIN \"USER\" u ON c.USER_ID = u.USER_ID " +
                 "WHERE c.COLLECTION_ID = ?";
 
         try (Connection conn = dataSource.getConnection();
@@ -139,7 +130,7 @@ public class JdbcCollectionRepository implements CollectionRepository {
         Set<Collection> collections = new HashSet<>();
         String sql = "SELECT c.*, u.USERNAME as USER_USERNAME " +
                 "FROM COLLECTION c " +
-                "JOIN USER u ON c.USER_ID = u.USER_ID";
+                "JOIN \"USER\" u ON c.USER_ID = u.USER_ID";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -156,24 +147,16 @@ public class JdbcCollectionRepository implements CollectionRepository {
         }
     }
 
-    /**
-     * Maps a ResultSet row to a Collection object.
-     *
-     * @param rs ResultSet containing collection data
-     * @return Mapped Collection object
-     * @throws SQLException if database access error occurs
-     */
     private Collection mapCollection(ResultSet rs) throws SQLException {
         Collection collection = new CollectionImpl();
         collection.setId(rs.getInt("COLLECTION_ID"));
-        collection.setCollectionName(rs.getString("NAME"));
+        collection.setCollectionName(rs.getString("COLLECTION_NAME"));
         collection.setDescription(rs.getString("DESCRIPTION"));
 
-        // Obtenemos el usuario completo usando el UserRepository
-        User user = userRepository.get(rs.getInt("USER_ID"));
-        if (user == null) {
-            throw new EntityNotFoundException("User not found for collection: " + collection.getId());
-        }
+        User user = new UserImpl();
+        user.setId(rs.getInt("USER_ID"));
+        user.setUsername(rs.getString("USER_USERNAME"));
+        // Si necesitas más campos, añádelos aquí usando rs.getXXX("NOMBRE_COLUMNA")
         collection.setUser(user);
 
         return collection;

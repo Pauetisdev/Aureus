@@ -23,15 +23,14 @@ public class JdbcUserDetailRepository implements UserDetailRepository {
     public void save(UserDetail userDetail) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement preparedStatement = connection.prepareStatement(
-                     "INSERT INTO USER_DETAIL (USER_ID, BIRTHDATE, PHONE, GENDER, NATIONALITY) VALUES (?, ?, ?, ?, ?) " +
-                             "ON DUPLICATE KEY UPDATE BIRTHDATE = VALUES(BIRTHDATE), PHONE = VALUES(PHONE), GENDER = VALUES(GENDER), NATIONALITY = VALUES(NATIONALITY)"
+                     "MERGE INTO USER_DETAIL (USER_ID, BIRTHDATE, PHONE, GENDER, NATIONALITY) VALUES (?, ?, ?, ?, ?)"
              )) {
 
             preparedStatement.setInt(1, userDetail.getId());
 
             LocalDate birthdate = userDetail.getBirthdate();
             if (birthdate != null) {
-                preparedStatement.setDate(2, Date.valueOf(birthdate)); // LocalDate -> java.sql.Date
+                preparedStatement.setDate(2, Date.valueOf(birthdate));
             } else {
                 preparedStatement.setNull(2, Types.DATE);
             }

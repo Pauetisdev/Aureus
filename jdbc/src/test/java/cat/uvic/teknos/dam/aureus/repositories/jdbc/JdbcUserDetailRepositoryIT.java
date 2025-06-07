@@ -21,13 +21,14 @@ class JdbcUserDetailRepositoryIT {
 
     @BeforeAll
     void setupDatabase() throws Exception {
-        String driver = "org.h2.Driver";
-        String server = "jdbc:h2:mem:";
+        String driver = "h2";
+        String server = "mem";
         String database = "testdb;DB_CLOSE_DELAY=-1";
         String user = "sa";
         String password = "";
+        var format = "jdbc:%s:%s:%s";
 
-        dataSource = new SingleConnectionDataSource(driver, server, database, user, password);
+        dataSource = new SingleConnectionDataSource(format, driver, server, database, user, password);
         repo = new JdbcUserDetailRepository(dataSource);
 
         try (Connection con = dataSource.getConnection();

@@ -20,25 +20,42 @@ public class JdbcUserRepository implements UserRepository {
 
     @Override
     public void save(User user) {
-        String sql = """
-            INSERT INTO USER (USERNAME, EMAIL, PASSWORD_HASH, JOIN_DATE)
-            VALUES (?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE
-                USERNAME = VALUES(USERNAME),
-                PASSWORD_HASH = VALUES(PASSWORD_HASH),
-                JOIN_DATE = VALUES(JOIN_DATE)
-            """;
+        String updateSql = "UPDATE \"USER\" SET USERNAME = ?, EMAIL = ?, PASSWORD_HASH = ?, JOIN_DATE = ? WHERE USER_ID = ?";
+        String insertSql = "INSERT INTO \"USER\" (USERNAME, EMAIL, PASSWORD_HASH, JOIN_DATE) VALUES (?, ?, ?, ?)";
 
-        try (var connection = dataSource.getConnection();
-             var ps = connection.prepareStatement(sql)) {
-
-            ps.setString(1, user.getUsername());
-            ps.setString(2, user.getEmail());
-            ps.setString(3, user.getPasswordHash());
-            ps.setTimestamp(4, Timestamp.valueOf(user.getJoinDate()));
-
-            ps.executeUpdate();
-
+        try (var connection = dataSource.getConnection()) {
+            int affectedRows = 0;
+            if (user.getId() != null) {
+                try (var ps = connection.prepareStatement(updateSql)) {
+                    ps.setString(1, user.getUsername());
+                    ps.setString(2, user.getEmail());
+                    ps.setString(3, user.getPasswordHash());
+                    if (user.getJoinDate() != null) {
+                        ps.setTimestamp(4, Timestamp.valueOf(user.getJoinDate()));
+                    } else {
+                        ps.setNull(4, java.sql.Types.TIMESTAMP);
+                    }
+                    ps.setInt(5, user.getId());
+                    affectedRows = ps.executeUpdate();
+                }
+                if (affectedRows > 0) return;
+            }
+            try (var ps = connection.prepareStatement(insertSql, java.sql.Statement.RETURN_GENERATED_KEYS)) {
+                ps.setString(1, user.getUsername());
+                ps.setString(2, user.getEmail());
+                ps.setString(3, user.getPasswordHash());
+                if (user.getJoinDate() != null) {
+                    ps.setTimestamp(4, Timestamp.valueOf(user.getJoinDate()));
+                } else {
+                    ps.setNull(4, java.sql.Types.TIMESTAMP);
+                }
+                ps.executeUpdate();
+                try (var rs = ps.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        user.setId(rs.getInt(1));
+                    }
+                }
+            }
         } catch (SQLException e) {
             throw new CrudException("Error al guardar el usuario", e);
         }
@@ -46,7 +63,7 @@ public class JdbcUserRepository implements UserRepository {
 
     @Override
     public void delete(User user) {
-        String sql = "DELETE FROM USER WHERE USER_ID = ?";
+        String sql = "DELETE FROM \"USER\" WHERE USER_ID = ?";
         try (var connection = dataSource.getConnection();
              var ps = connection.prepareStatement(sql)) {
 
@@ -60,7 +77,7 @@ public class JdbcUserRepository implements UserRepository {
 
     @Override
     public User get(Integer id) {
-        String sql = "SELECT * FROM USER WHERE USER_ID = ?";
+        String sql = "SELECT * FROM \"USER\" WHERE USER_ID = ?";
         try (var connection = dataSource.getConnection();
              var ps = connection.prepareStatement(sql)) {
 
@@ -80,7 +97,7 @@ public class JdbcUserRepository implements UserRepository {
 
     @Override
     public Set<User> getAll() {
-        String sql = "SELECT * FROM USER";
+        String sql = "SELECT * FROM \"USER\"";
         Set<User> users = new HashSet<>();
 
         try (var connection = dataSource.getConnection();
@@ -100,7 +117,7 @@ public class JdbcUserRepository implements UserRepository {
 
     @Override
     public User findByEmail(String email) {
-        String sql = "SELECT * FROM USER WHERE EMAIL = ?";
+        String sql = "SELECT * FROM \"USER\" WHERE EMAIL = ?";
         try (var connection = dataSource.getConnection();
              var ps = connection.prepareStatement(sql)) {
 

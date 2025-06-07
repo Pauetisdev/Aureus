@@ -58,14 +58,4 @@ public class CollectionImpl implements Collection {
     public void setUser(User user) {
         this.user = user;
     }
-
-    @Override
-    public List<CoinCollection> getCoinCollections() {
-        return coinCollections;
-    }
-
-    @Override
-    public void setCoinCollections(List<CoinCollection> coinCollections) {
-        this.coinCollections = coinCollections != null ? coinCollections : new ArrayList<>();
-    }
 }

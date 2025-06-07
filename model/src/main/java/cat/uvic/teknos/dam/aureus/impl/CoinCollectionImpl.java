@@ -10,6 +10,7 @@ public class CoinCollectionImpl implements CoinCollection {
     private Integer collectionId;
     private Coin coin;
     private Collection collection;
+    private Integer id;
 
     public CoinCollectionImpl() {}
 
@@ -47,5 +48,15 @@ public class CoinCollectionImpl implements CoinCollection {
 
     public void setCollection(Collection collection) {
         this.collection = collection;
+    }
+
+    @Override
+    public Integer getId() {
+        return id;
+    }
+
+    @Override
+    public void setId(Integer id) {
+        this.id = id;
     }
 }

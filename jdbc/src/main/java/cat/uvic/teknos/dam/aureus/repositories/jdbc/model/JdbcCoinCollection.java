@@ -5,10 +5,21 @@ import cat.uvic.teknos.dam.aureus.Coin;
 import cat.uvic.teknos.dam.aureus.Collection;
 
 public class JdbcCoinCollection implements CoinCollection {
+    private Integer id;
     private Coin coin;
     private Collection collection;
 
     public JdbcCoinCollection() {}
+
+    @Override
+    public Integer getId() {
+        return id;
+    }
+
+    @Override
+    public void setId(Integer id) {
+        this.id = id;
+    }
 
     @Override
     public Integer getCoinId() {

@@ -1,14 +1,13 @@
 package cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources;
 
-import cat.uvic.teknos.dam.aureus.repositories.jdbc.exceptions.DataSourceException;
-
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
+import cat.uvic.teknos.dam.aureus.repositories.jdbc.exceptions.DataSourceException;
 
-public class SingleConnectionDataSource implements DataSource {
+public class SingleConnectionDataSource implements DataSource, AutoCloseable {
     private final String format;
     private Connection connection;
     private final String driver;
@@ -53,19 +52,23 @@ public class SingleConnectionDataSource implements DataSource {
 
     @Override
     public Connection getConnection() {
-        if (connection == null) {
-            var url = String.format(format, driver, server, database);
-            try {
-                connection = DriverManager.getConnection(
-                        url,
-                        user,
-                        password
-                );
-            } catch (SQLException e) {
-                throw new DataSourceException("Failed to get database connection", e);
+        try {
+            if (connection == null || connection.isClosed()) {
+                var url = String.format(format, driver, server, database);
+                connection = DriverManager.getConnection(url, user, password);
             }
+        } catch (SQLException e) {
+            throw new DataSourceException("Failed to get database connection", e);
         }
         return connection;
+    }
+
+    @Override
+    public void close() throws Exception {
+        if (connection != null && !connection.isClosed()) {
+            connection.close();
+            connection = null;
+        }
     }
 
     public String getDriver() {
