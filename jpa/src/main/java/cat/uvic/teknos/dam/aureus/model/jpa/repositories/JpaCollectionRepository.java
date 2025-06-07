@@ -16,6 +16,10 @@ public class JpaCollectionRepository implements Repository<Integer, JpaCollectio
         this.entityManager = entityManager;
     }
 
+    public EntityManager getEntityManager() {
+        return entityManager;
+    }
+
     @Override
     public void save(JpaCollection collection) {
         if (collection == null) {

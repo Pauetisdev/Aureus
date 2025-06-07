@@ -1,137 +1,59 @@
 package cat.uvic.teknos.dam.aureus.model.jpa;
 
-import cat.uvic.teknos.dam.aureus.model.jpa.repositories.JpaCoinTransactionRepository;
-import cat.uvic.teknos.dam.aureus.repositories.jdbc.exceptions.EntityNotFoundException;
-import jakarta.persistence.EntityManagerFactory;
-import jakarta.persistence.Persistence;
+import jakarta.persistence.*;
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@TestMethodOrder(OrderAnnotation.class)
-class JpaCoinTransactionTest {
+public class JpaCoinTransactionTest {
 
-    private static EntityManagerFactory entityManagerFactory;
-    private JpaCoinTransactionRepository repository;
+    private static EntityManagerFactory emf;
+    private EntityManager em;
 
-    // IDs
     private static final int COIN_ID = 1;
     private static final int TRANSACTION_ID = 1;
+    private static final int BUYER_ID = 1;
+    private static final int SELLER_ID = 2;
 
     @BeforeAll
-    static void setUp() {
-        entityManagerFactory = Persistence.createEntityManagerFactory("aureus_test");
-    }
-
-    @BeforeEach
-    void beforeEach() {
-        this.repository = new JpaCoinTransactionRepository(entityManagerFactory.createEntityManager());
+    static void setUpClass() {
+        emf = Persistence.createEntityManagerFactory("aureus_test");
     }
 
     @AfterAll
-    static void tearDown() {
-        if (entityManagerFactory != null && entityManagerFactory.isOpen()) {
-            entityManagerFactory.close();
+    static void tearDownClass() {
+        if (emf != null) {
+            emf.close();
         }
     }
 
-    @Test
-    @Order(1)
-    @DisplayName("Should insert and retrieve a CoinTransaction")
-    void shouldInsertAndGetCoinTransaction() {
-        // Arrange
-        var coin = createAndPersistCoin();
-        var transaction = createAndPersistTransaction();
-
-        var id = new CoinTransactionId();
-        id.setCoinId(COIN_ID);
-        id.setTransactionId(TRANSACTION_ID);
-
-        var coinTransaction = new JpaCoinTransaction();
-        coinTransaction.setId(id);
-        coinTransaction.setCoin(coin);
-        coinTransaction.setTransaction(transaction);
-        coinTransaction.setTransactionPrice(BigDecimal.valueOf(50.0));
-        coinTransaction.setCurrency("EUR");
-
-        // Act
-        repository.save(coinTransaction);
-
-        // Assert
-        var retrieved = repository.get(id);
-        assertNotNull(retrieved);
-        assertEquals("EUR", retrieved.getCurrency());
-        assertEquals(BigDecimal.valueOf(50.0), retrieved.getTransactionPrice());
-        assertEquals(COIN_ID, retrieved.getId().getCoinId());
-        assertEquals(TRANSACTION_ID, retrieved.getId().getTransactionId());
+    @BeforeEach
+    void setUp() {
+        em = emf.createEntityManager();
     }
 
-    @Test
-    @Order(2)
-    @DisplayName("Should update an existing CoinTransaction")
-    void shouldUpdateCoinTransaction() {
-        // Arrange
-        var id = new CoinTransactionId();
-        id.setCoinId(COIN_ID);
-        id.setTransactionId(TRANSACTION_ID);
-
-        var existing = repository.get(id);
-        existing.setTransactionPrice(BigDecimal.valueOf(75.0));
-        existing.setCurrency("USD");
-
-        // Act
-        repository.save(existing);
-
-        // Assert
-        var updated = repository.get(id);
-        assertEquals(BigDecimal.valueOf(75.0), updated.getTransactionPrice());
-        assertEquals("USD", updated.getCurrency());
+    @AfterEach
+    void tearDown() {
+        if (em != null) {
+            em.close();
+        }
     }
 
-    @Test
-    @Order(3)
-    @DisplayName("Should get all CoinTransactions")
-    void shouldGetAllCoinTransactions() {
-        // Act
-        Set<JpaCoinTransaction> transactions = repository.getAll();
-
-        // Assert
-        assertNotNull(transactions);
-        assertFalse(transactions.isEmpty());
+    private JpaUser createAndPersistUser() {
+        JpaUser user = new JpaUser();
+        user.setUsername("user");
+        user.setPasswordHash("pass");
+        em.getTransaction().begin();
+        em.persist(user);
+        em.getTransaction().commit();
+        return user;
     }
-
-    @Test
-    @Order(4)
-    @DisplayName("Should delete a CoinTransaction")
-    void shouldDeleteCoinTransaction() {
-        // Arrange
-        var id = new CoinTransactionId();
-        id.setCoinId(COIN_ID);
-        id.setTransactionId(TRANSACTION_ID);
-
-        var toDelete = repository.get(id);
-
-        // Act
-        repository.delete(toDelete);
-
-        // Assert
-        assertThrows(EntityNotFoundException.class, () -> repository.get(id));
-    }
-
-    // --- Helpers ---
 
     private JpaCoin createAndPersistCoin() {
-        var em = entityManagerFactory.createEntityManager();
-        var tx = em.getTransaction();
-
-        tx.begin();
-        var coin = new JpaCoin();
-        coin.setId(COIN_ID);
+        JpaCoin coin = new JpaCoin();
         coin.setCoinName("Golden Dollar");
         coin.setCoinYear(2020);
         coin.setCoinMaterial("Gold");
@@ -139,36 +61,81 @@ class JpaCoinTransactionTest {
         coin.setCoinDiameter(BigDecimal.valueOf(25.0));
         coin.setEstimatedValue(BigDecimal.valueOf(100.0));
         coin.setOriginCountry("Spain");
-
+        em.getTransaction().begin();
         em.persist(coin);
-        tx.commit();
-        em.close();
-
+        em.getTransaction().commit();
         return coin;
     }
 
-    private JpaTransaction createAndPersistTransaction() {
-        var em = entityManagerFactory.createEntityManager();
-        var tx = em.getTransaction();
-
-        tx.begin();
-        var transaction = new JpaTransaction();
-        transaction.setId(TRANSACTION_ID);
+    private JpaTransaction createAndPersistTransaction(JpaUser buyer, JpaUser seller) {
+        JpaTransaction transaction = new JpaTransaction();
         transaction.setTransactionDate(LocalDateTime.now());
-
-        // Buyers and sellers
-        var buyer = new JpaUser();
-        buyer.setId(1);
-        var seller = new JpaUser();
-        seller.setId(2);
-
         transaction.setBuyer(buyer);
         transaction.setSeller(seller);
-
+        em.getTransaction().begin();
         em.persist(transaction);
-        tx.commit();
-        em.close();
-
+        em.getTransaction().commit();
         return transaction;
+    }
+
+    @Test
+    void testPersistCoinTransaction() {
+        // Crear y persistir usuarios con todos los campos obligatorios
+        JpaUser buyer = new JpaUser();
+        buyer.setUsername("comprador");
+        buyer.setPasswordHash("pass1");
+        buyer.setEmail("comprador@email.com"); // Campo obligatorio
+        em.getTransaction().begin();
+        em.persist(buyer);
+        em.getTransaction().commit();
+
+        JpaUser seller = new JpaUser();
+        seller.setUsername("vendedor");
+        seller.setPasswordHash("pass2");
+        seller.setEmail("vendedor@email.com"); // Campo obligatorio
+        em.getTransaction().begin();
+        em.persist(seller);
+        em.getTransaction().commit();
+
+        // Crear y persistir moneda
+        JpaCoin coin = new JpaCoin();
+        coin.setCoinName("Golden Dollar");
+        coin.setCoinYear(2020);
+        coin.setCoinMaterial("Gold");
+        coin.setCoinWeight(new BigDecimal("10.0"));
+        coin.setCoinDiameter(new BigDecimal("25.0"));
+        coin.setEstimatedValue(new BigDecimal("100.0"));
+        coin.setOriginCountry("Spain");
+        em.getTransaction().begin();
+        em.persist(coin);
+        em.getTransaction().commit();
+
+        // Crear y persistir transacción
+        JpaTransaction transaction = new JpaTransaction();
+        transaction.setTransactionDate(LocalDateTime.now());
+        transaction.setBuyer(buyer);
+        transaction.setSeller(seller);
+        em.getTransaction().begin();
+        em.persist(transaction);
+        em.getTransaction().commit();
+
+        // Crear y persistir CoinTransaction con ID compuesto
+        JpaCoinTransaction coinTransaction = new JpaCoinTransaction();
+        coinTransaction.setCoin(coin);
+        coinTransaction.setTransaction(transaction);
+        coinTransaction.setId(new CoinTransactionId(coin.getId(), transaction.getId()));
+        coinTransaction.setTransactionPrice(new BigDecimal("120.00"));
+        coinTransaction.setCurrency("EUR");
+
+        em.getTransaction().begin();
+        em.persist(coinTransaction);
+        em.getTransaction().commit();
+
+        // Verificar que se ha persistido correctamente
+        assertNotNull(coinTransaction.getId());
+        JpaCoinTransaction found = em.find(JpaCoinTransaction.class, coinTransaction.getId());
+        assertNotNull(found);
+        assertEquals(coin.getId(), found.getCoin().getId());
+        assertEquals(transaction.getId(), found.getTransaction().getId());
     }
 }

@@ -24,10 +24,16 @@ public class JpaCoinTransactionRepository implements Repository<CoinTransactionI
         if (coinTransaction == null) {
             throw new InvalidDataException("CoinTransaction cannot be null");
         }
-
         EntityTransaction tx = em.getTransaction();
         try {
             tx.begin();
+            // Asegura que las entidades relacionadas estén gestionadas
+            if (coinTransaction.getCoin() != null) {
+                coinTransaction.setCoin(em.merge(coinTransaction.getCoin()));
+            }
+            if (coinTransaction.getTransaction() != null) {
+                coinTransaction.setTransaction(em.merge(coinTransaction.getTransaction()));
+            }
             if (em.find(JpaCoinTransaction.class, coinTransaction.getId()) == null) {
                 em.persist(coinTransaction);
             } else {
@@ -47,7 +53,6 @@ public class JpaCoinTransactionRepository implements Repository<CoinTransactionI
         if (coinTransaction == null) {
             throw new InvalidDataException("CoinTransaction cannot be null");
         }
-
         EntityTransaction tx = em.getTransaction();
         try {
             tx.begin();
@@ -72,6 +77,9 @@ public class JpaCoinTransactionRepository implements Repository<CoinTransactionI
 
     @Override
     public JpaCoinTransaction get(CoinTransactionId id) {
+        if (id == null) {
+            throw new InvalidDataException("ID cannot be null");
+        }
         try {
             JpaCoinTransaction coinTransaction = em.find(JpaCoinTransaction.class, id);
             if (coinTransaction == null) {

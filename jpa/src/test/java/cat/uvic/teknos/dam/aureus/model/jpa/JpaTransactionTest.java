@@ -2,6 +2,7 @@ package cat.uvic.teknos.dam.aureus.model.jpa;
 
 import cat.uvic.teknos.dam.aureus.model.jpa.repositories.JpaTransactionRepository;
 import cat.uvic.teknos.dam.aureus.repositories.jdbc.exceptions.EntityNotFoundException;
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
 import org.junit.jupiter.api.*;
@@ -16,11 +17,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class JpaTransactionTest {
 
     private static EntityManagerFactory entityManagerFactory;
+    private EntityManager em;
     private JpaTransactionRepository repository;
-
-    // IDs
-    private static final int BUYER_ID = 1;
-    private static final int SELLER_ID = 2;
 
     @BeforeAll
     static void setUp() {
@@ -29,7 +27,15 @@ class JpaTransactionTest {
 
     @BeforeEach
     void beforeEach() {
-        this.repository = new JpaTransactionRepository(entityManagerFactory.createEntityManager());
+        em = entityManagerFactory.createEntityManager();
+        repository = new JpaTransactionRepository(em);
+    }
+
+    @AfterEach
+    void afterEach() {
+        if (em != null && em.isOpen()) {
+            em.close();
+        }
     }
 
     @AfterAll
@@ -43,23 +49,20 @@ class JpaTransactionTest {
     @Order(1)
     @DisplayName("Debe insertar una transacción y recuperarla")
     void shouldInsertAndGetTransaction() {
-        // Arrange
-        var buyer = createAndPersistUser(BUYER_ID);
-        var seller = createAndPersistUser(SELLER_ID);
+        var buyer = createAndPersistUser(em, "buyer");
+        var seller = createAndPersistUser(em, "seller");
 
         var transaction = new JpaTransaction();
         transaction.setBuyer(buyer);
         transaction.setSeller(seller);
         transaction.setTransactionDate(LocalDateTime.now());
 
-        // Act
         repository.save(transaction);
 
-        // Assert
         var retrieved = repository.get(transaction.getId());
         assertNotNull(retrieved);
-        assertEquals(BUYER_ID, retrieved.getBuyer().getId());
-        assertEquals(SELLER_ID, retrieved.getSeller().getId());
+        assertEquals(buyer.getId(), retrieved.getBuyer().getId());
+        assertEquals(seller.getId(), retrieved.getSeller().getId());
         assertNotNull(retrieved.getTransactionDate());
     }
 
@@ -67,16 +70,13 @@ class JpaTransactionTest {
     @Order(2)
     @DisplayName("Debe actualizar una transacción existente")
     void shouldUpdateTransaction() {
-        // Arrange
-        var transaction = repository.get(1); // Creado en el test anterior
+        var transaction = repository.get(1);
         LocalDateTime oldDate = transaction.getTransactionDate();
         LocalDateTime newDate = LocalDateTime.now().plusHours(1);
         transaction.setTransactionDate(newDate);
 
-        // Act
         repository.save(transaction);
 
-        // Assert
         var updated = repository.get(1);
         assertNotNull(updated);
         assertTrue(updated.getTransactionDate().isAfter(oldDate));
@@ -86,10 +86,8 @@ class JpaTransactionTest {
     @Order(3)
     @DisplayName("Debe obtener todas las transacciones")
     void shouldGetAllTransactions() {
-        // Act
         Set<JpaTransaction> transactions = repository.getAll();
 
-        // Assert
         assertNotNull(transactions);
         assertFalse(transactions.isEmpty());
         assertTrue(transactions.size() >= 1);
@@ -99,14 +97,11 @@ class JpaTransactionTest {
     @Order(4)
     @DisplayName("Debe encontrar transacciones dentro de un rango de fechas")
     void shouldFindByDateRange() {
-        // Arrange
         LocalDateTime start = LocalDateTime.now().minusHours(1);
         LocalDateTime end = LocalDateTime.now().plusHours(1);
 
-        // Act
         List<JpaTransaction> result = repository.findByDateRange(start, end);
 
-        // Assert
         assertNotNull(result);
         assertFalse(result.isEmpty());
         for (var t : result) {
@@ -119,32 +114,24 @@ class JpaTransactionTest {
     @Order(5)
     @DisplayName("Debe eliminar una transacción")
     void shouldDeleteTransaction() {
-        // Arrange
         var transactionToDelete = repository.get(1);
 
-        // Act
         repository.delete(transactionToDelete);
 
-        // Assert
         assertThrows(EntityNotFoundException.class, () -> repository.get(1));
     }
 
     // --- Métodos auxiliares ---
 
-    private JpaUser createAndPersistUser(int id) {
-        var em = entityManagerFactory.createEntityManager();
+    private JpaUser createAndPersistUser(EntityManager em, String username) {
         var tx = em.getTransaction();
-
         tx.begin();
         var user = new JpaUser();
-        user.setId(id);
-        user.setUsername("test_user_" + id);
-        user.setEmail("user" + id + "@example.com");
+        user.setUsername(username);
+        user.setEmail(username + "@example.com");
         user.setPasswordHash("hash123");
         em.persist(user);
         tx.commit();
-        em.close();
-
         return user;
     }
 }

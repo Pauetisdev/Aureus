@@ -1,13 +1,16 @@
 package cat.uvic.teknos.dam.aureus.model.jpa;
 
+import cat.uvic.teknos.dam.aureus.model.jpa.JpaUser;
 import cat.uvic.teknos.dam.aureus.model.jpa.JpaUserDetail;
 import cat.uvic.teknos.dam.aureus.model.jpa.repositories.JpaUserDetailRepository;
+import cat.uvic.teknos.dam.aureus.model.jpa.repositories.JpaUserRepository;
 import cat.uvic.teknos.dam.aureus.repositories.jdbc.exceptions.EntityNotFoundException;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
 import org.junit.jupiter.api.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -16,7 +19,9 @@ import static org.junit.jupiter.api.Assertions.*;
 class JpaUserDetailTest {
 
     private static EntityManagerFactory entityManagerFactory;
-    private JpaUserDetailRepository repository;
+    private JpaUserDetailRepository detailRepository;
+    private JpaUserRepository userRepository;
+    private static Integer userId;
 
     @BeforeAll
     static void setUp() {
@@ -25,7 +30,9 @@ class JpaUserDetailTest {
 
     @BeforeEach
     void beforeEach() {
-        this.repository = new JpaUserDetailRepository(entityManagerFactory.createEntityManager());
+        var entityManager = entityManagerFactory.createEntityManager();
+        this.detailRepository = new JpaUserDetailRepository(entityManager);
+        this.userRepository = new JpaUserRepository(entityManager);
     }
 
     @AfterAll
@@ -39,19 +46,27 @@ class JpaUserDetailTest {
     @Order(1)
     @DisplayName("Should insert and retrieve a user detail")
     void shouldInsertAndGetUserDetail() {
-        // Arrange
+        // Crear y guardar usuario
+        var user = new JpaUser();
+        user.setUsername("john_doe");
+        user.setEmail("john.doe@example.com");
+        user.setPasswordHash("hash123");
+        user.setJoinDate(LocalDateTime.now());
+        userRepository.save(user);
+        userId = user.getId();
+
+        // Crear y asociar detalle
         var detail = new JpaUserDetail();
-        detail.setId(1); // Assuming a user with ID 1 exists
+        detail.setUser(user);
         detail.setBirthdate(LocalDate.of(1990, 1, 1));
         detail.setGender("Male");
         detail.setNationality("Spanish");
         detail.setPhone("123456789");
 
-        // Act
-        repository.save(detail);
+        // Guardar y comprobar
+        detailRepository.save(detail);
 
-        // Assert
-        var retrieved = repository.get(detail.getId());
+        var retrieved = detailRepository.get(detail.getId());
         assertNotNull(retrieved);
         assertEquals("Male", retrieved.getGender());
         assertEquals("Spanish", retrieved.getNationality());
@@ -62,15 +77,11 @@ class JpaUserDetailTest {
     @Order(2)
     @DisplayName("Should update an existing user detail")
     void shouldUpdateUserDetail() {
-        // Arrange
-        var detail = repository.get(1);
+        var detail = detailRepository.get(userId);
         detail.setNationality("French");
+        detailRepository.save(detail);
 
-        // Act
-        repository.save(detail);
-
-        // Assert
-        var updated = repository.get(1);
+        var updated = detailRepository.get(userId);
         assertNotNull(updated);
         assertEquals("French", updated.getNationality());
     }
@@ -79,10 +90,7 @@ class JpaUserDetailTest {
     @Order(3)
     @DisplayName("Should get all user details")
     void shouldGetAllUserDetails() {
-        // Act
-        Set<JpaUserDetail> details = repository.getAll();
-
-        // Assert
+        Set<JpaUserDetail> details = detailRepository.getAll();
         assertNotNull(details);
         assertFalse(details.isEmpty());
         assertTrue(details.size() >= 1);
@@ -92,13 +100,8 @@ class JpaUserDetailTest {
     @Order(4)
     @DisplayName("Should delete a user detail")
     void shouldDeleteUserDetail() {
-        // Arrange
-        var detailToDelete = repository.get(1);
-
-        // Act
-        repository.delete(detailToDelete);
-
-        // Assert
-        assertThrows(EntityNotFoundException.class, () -> repository.get(1));
+        var detailToDelete = detailRepository.get(userId);
+        detailRepository.delete(detailToDelete);
+        assertThrows(EntityNotFoundException.class, () -> detailRepository.get(userId));
     }
 }

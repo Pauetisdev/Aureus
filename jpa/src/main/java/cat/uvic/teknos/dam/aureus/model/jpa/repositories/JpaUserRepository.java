@@ -10,9 +10,9 @@ import jakarta.persistence.EntityTransaction;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.TypedQuery;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
 public class JpaUserRepository implements UserRepository {
@@ -31,7 +31,7 @@ public class JpaUserRepository implements UserRepository {
         EntityTransaction tx = entityManager.getTransaction();
         try {
             tx.begin();
-            if (user.getId() == 0) {
+            if (user.getId() == null) {
                 entityManager.persist(user);
             } else {
                 entityManager.merge(user);
@@ -92,7 +92,7 @@ public class JpaUserRepository implements UserRepository {
     public Set<User> getAll() {
         try {
             List<JpaUser> jpaUsers = entityManager.createQuery("SELECT u FROM JpaUser u", JpaUser.class).getResultList();
-            return new HashSet<>(jpaUsers);
+            return jpaUsers.stream().map(u -> (User) u).collect(Collectors.toSet());
         } catch (Exception e) {
             throw new RepositoryException("Error retrieving all users", e);
         }

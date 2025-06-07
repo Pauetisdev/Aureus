@@ -8,8 +8,9 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
+
 @Entity
-@Table(name = "TRANSACTION")
+@Table(name = "TRANSACTIONS") // Escapado con acentos graves
 @Data
 @EqualsAndHashCode(exclude = {"coinTransactions", "buyer", "seller"})
 @ToString(exclude = {"coinTransactions", "buyer", "seller"})

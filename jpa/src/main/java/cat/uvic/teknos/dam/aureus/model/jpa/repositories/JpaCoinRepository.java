@@ -102,7 +102,7 @@ public class JpaCoinRepository implements Repository<Integer, JpaCoin> {
 
         try {
             TypedQuery<JpaCoin> query = entityManager.createQuery(
-                    "SELECT c FROM JpaCoin c WHERE c.material = :material", JpaCoin.class);
+                    "SELECT c FROM JpaCoin c WHERE c.coinMaterial = :material", JpaCoin.class);
             query.setParameter("material", material);
             return new ArrayList<>(query.getResultList());
         } catch (Exception e) {
@@ -117,7 +117,7 @@ public class JpaCoinRepository implements Repository<Integer, JpaCoin> {
 
         try {
             TypedQuery<JpaCoin> query = entityManager.createQuery(
-                    "SELECT c FROM JpaCoin c WHERE c.year = :year", JpaCoin.class);
+                    "SELECT c FROM JpaCoin c WHERE c.coinYear = :year", JpaCoin.class);
             query.setParameter("year", year);
             return new ArrayList<>(query.getResultList());
         } catch (Exception e) {

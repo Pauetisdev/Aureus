@@ -17,6 +17,7 @@ class JpaUserTest {
 
     private static EntityManagerFactory entityManagerFactory;
     private JpaUserRepository repository;
+    private static Integer userId;
 
     @BeforeAll
     static void setUp() {
@@ -40,8 +41,7 @@ class JpaUserTest {
     @DisplayName("Should insert and retrieve a user")
     void shouldInsertAndGetUser() {
         // Arrange
-        var user = new JpaUser();
-        user.setId(1);
+        User user = new JpaUser();
         user.setUsername("john_doe");
         user.setEmail("john.doe@example.com");
         user.setPasswordHash("hash123");
@@ -49,9 +49,10 @@ class JpaUserTest {
 
         // Act
         repository.save(user);
+        userId = user.getId();
 
         // Assert
-        var retrieved = repository.get(user.getId());
+        var retrieved = repository.get(userId);
         assertNotNull(retrieved);
         assertEquals("john_doe", retrieved.getUsername());
         assertEquals("john.doe@example.com", retrieved.getEmail());
@@ -62,14 +63,14 @@ class JpaUserTest {
     @DisplayName("Should update an existing user")
     void shouldUpdateUser() {
         // Arrange
-        var user = repository.get(1);
+        User user = repository.get(userId);
         user.setUsername("updated_username");
 
         // Act
         repository.save(user);
 
         // Assert
-        var updated = repository.get(1);
+        var updated = repository.get(userId);
         assertNotNull(updated);
         assertEquals("updated_username", updated.getUsername());
     }
@@ -91,7 +92,7 @@ class JpaUserTest {
     @Order(4)
     @DisplayName("Should find user by email")
     void shouldFindByEmail() {
-        // Arrange
+        // Act
         var found = repository.findByEmail("john.doe@example.com");
 
         // Assert
@@ -104,12 +105,12 @@ class JpaUserTest {
     @DisplayName("Should delete a user")
     void shouldDeleteUser() {
         // Arrange
-        var userToDelete = repository.get(1);
+        User userToDelete = repository.get(userId);
 
         // Act
         repository.delete(userToDelete);
 
         // Assert
-        assertThrows(EntityNotFoundException.class, () -> repository.get(1));
+        assertThrows(EntityNotFoundException.class, () -> repository.get(userId));
     }
 }

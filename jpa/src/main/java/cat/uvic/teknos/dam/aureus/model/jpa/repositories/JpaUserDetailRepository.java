@@ -22,11 +22,14 @@ public class JpaUserDetailRepository implements Repository<Integer, JpaUserDetai
         if (detail == null) {
             throw new InvalidDataException("UserDetail cannot be null");
         }
+        if (detail.getUser() == null || detail.getUser().getId() == null) {
+            throw new InvalidDataException("UserDetail must be associated with a persisted User");
+        }
 
         EntityTransaction tx = entityManager.getTransaction();
         try {
             tx.begin();
-            if (entityManager.find(JpaUserDetail.class, detail.getId()) == null) {
+            if (detail.getId() == null) {
                 entityManager.persist(detail);
             } else {
                 entityManager.merge(detail);
