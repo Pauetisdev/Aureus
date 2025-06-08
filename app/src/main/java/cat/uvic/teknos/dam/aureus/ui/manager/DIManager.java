@@ -3,6 +3,7 @@ package cat.uvic.teknos.dam.aureus.ui.manager;
 import cat.uvic.teknos.dam.aureus.ui.exceptions.DIException;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Properties;
 
@@ -24,8 +25,11 @@ public class DIManager {
      */
     public DIManager() {
         properties = new Properties();
-        try {
-            properties.load(this.getClass().getResourceAsStream("/di.properties"));
+        try (InputStream in = this.getClass().getResourceAsStream("/di.properties")) {
+            if (in == null) {
+                throw new DIException("No se ha encontrado el archivo di.properties en el classpath.");
+            }
+            properties.load(in);
         } catch (IOException e) {
             throw new DIException(e);
         }

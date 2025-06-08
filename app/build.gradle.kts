@@ -18,8 +18,7 @@ dependencies {
 }
 
 application {
-    // Define the main class for the application.
-    mainClass = "cat.uvic.teknos.aureus.ui.App"
+    mainClass = "cat.uvic.teknos.dam.aureus.ui.App"
 }
 // Configure Javadoc
 tasks.javadoc {
@@ -30,5 +29,11 @@ tasks.javadoc {
         encoding = "UTF-8"
         author(true)
         version(true)
+    }
+}
+
+tasks.named<Jar>("jar") {
+    manifest {
+        attributes["Main-Class"] = "cat.uvic.teknos.dam.aureus.ui.App"
     }
 }
