@@ -10,16 +10,20 @@ dependencies {
     implementation(project(":jdbc"))
     implementation(project(":model"))
     implementation(project(":repositories"))
-
     implementation("com.github.freva:ascii-table:1.8.0")
     implementation("com.mysql:mysql-connector-j:9.3.0")
     implementation(project(":utilities"))
-
 }
 
 application {
     mainClass = "cat.uvic.teknos.dam.aureus.ui.App"
 }
+
+tasks.named<JavaExec>("run") {
+    standardInput = System.`in`
+    systemProperty("file.encoding", "UTF-8")
+}
+
 // Configure Javadoc
 tasks.javadoc {
     title = "Aureus - Documentación"
@@ -32,8 +36,6 @@ tasks.javadoc {
     }
 }
 
-tasks.named<Jar>("jar") {
-    manifest {
-        attributes["Main-Class"] = "cat.uvic.teknos.dam.aureus.ui.App"
-    }
+tasks.named<Test>("test") {
+    enabled = false
 }

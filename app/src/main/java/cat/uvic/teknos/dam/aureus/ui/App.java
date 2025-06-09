@@ -34,6 +34,7 @@ public class App {
     public static void main(String[] args) throws IOException, ClassNotFoundException, InvocationTargetException, InstantiationException, IllegalAccessException {
         // Inicializamos el scanner para leer entrada del usuario
         var scanner = new Scanner(System.in);
+        scanner.useDelimiter(System.lineSeparator());
 
         // Mostramos el banner de la aplicación
         Banner.show();
@@ -48,36 +49,54 @@ public class App {
 
         // Bucle principal del programa
         var command = "";
-        while (!Objects.equals(command = scanner.nextLine(), "exit")) {
-            switch (command) {
-                case "1":
-                    manageUsers(repositoryFactory, modelFactory, scanner);
-                    showMainMenu();
+        while (true) {
+            System.out.print(""); // Asegura que el prompt se muestre
+
+            if (scanner.hasNextLine()) {
+                command = scanner.nextLine().trim();
+
+                if (Objects.equals(command, "exit")) {
                     break;
-                case "2":
-                    manageUserDetails(repositoryFactory, modelFactory, scanner);
-                    showMainMenu();
+                }
+
+                switch (command) {
+                    case "1":
+                        manageUsers(repositoryFactory, modelFactory, scanner);
+                        showMainMenu();
+                        break;
+                    case "2":
+                        manageUserDetails(repositoryFactory, modelFactory, scanner);
+                        showMainMenu();
+                        break;
+                    case "3":
+                        manageCoins(repositoryFactory, modelFactory, scanner);
+                        showMainMenu();
+                        break;
+                    case "4":
+                        manageCollections(repositoryFactory, modelFactory, scanner);
+                        showMainMenu();
+                        break;
+                    case "5":
+                        manageTransactions(repositoryFactory, modelFactory, scanner);
+                        showMainMenu();
+                        break;
+                    case "6":
+                        manageCoinTransactions(repositoryFactory, modelFactory, scanner);
+                        showMainMenu();
+                        break;
+                    default:
+                        System.out.println("Invalid command. Please try again.");
+                        showMainMenu();
+                        break;
+                }
+            } else {
+                // Si no hay entrada disponible, espera un poco
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     break;
-                case "3":
-                    manageCoins(repositoryFactory, modelFactory, scanner);
-                    showMainMenu();
-                    break;
-                case "4":
-                    manageCollections(repositoryFactory, modelFactory, scanner);
-                    showMainMenu();
-                    break;
-                case "5":
-                    manageTransactions(repositoryFactory, modelFactory, scanner);
-                    showMainMenu();
-                    break;
-                case "6":
-                    manageCoinTransactions(repositoryFactory, modelFactory, scanner);
-                    showMainMenu();
-                    break;
-                default:
-                    System.out.println("Invalid command. Please try again.");
-                    showMainMenu();
-                    break;
+                }
             }
         }
     }
@@ -97,6 +116,7 @@ public class App {
         System.out.println("6 - Manage Coin Transactions");
         System.out.println("'exit' - Exit Program");
         System.out.print("\nSelect an option: ");
+        System.out.flush();
     }
 
     /**
