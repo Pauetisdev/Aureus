@@ -20,8 +20,9 @@ public class JdbcUserRepository implements UserRepository {
 
     @Override
     public void save(User user) {
-        String updateSql = "UPDATE \"USER\" SET USERNAME = ?, EMAIL = ?, PASSWORD_HASH = ?, JOIN_DATE = ? WHERE USER_ID = ?";
-        String insertSql = "INSERT INTO \"USER\" (USERNAME, EMAIL, PASSWORD_HASH, JOIN_DATE) VALUES (?, ?, ?, ?)";
+        String updateSql = "UPDATE `USER` SET USERNAME = ?, EMAIL = ?, PASSWORD_HASH = ?, JOIN_DATE = ? WHERE USER_ID = ?";
+        String insertSql = "INSERT INTO `USER` (USERNAME, EMAIL, PASSWORD_HASH, JOIN_DATE) VALUES (?, ?, ?, ?)";
+
 
         try (var connection = dataSource.getConnection()) {
             int affectedRows = 0;
@@ -63,7 +64,7 @@ public class JdbcUserRepository implements UserRepository {
 
     @Override
     public void delete(User user) {
-        String sql = "DELETE FROM \"USER\" WHERE USER_ID = ?";
+        String sql = "DELETE FROM `USER` WHERE USER_ID = ?";
         try (var connection = dataSource.getConnection();
              var ps = connection.prepareStatement(sql)) {
 
@@ -77,7 +78,7 @@ public class JdbcUserRepository implements UserRepository {
 
     @Override
     public User get(Integer id) {
-        String sql = "SELECT * FROM \"USER\" WHERE USER_ID = ?";
+        String sql = "SELECT * FROM `USER` WHERE USER_ID = ?";
         try (var connection = dataSource.getConnection();
              var ps = connection.prepareStatement(sql)) {
 
@@ -97,7 +98,7 @@ public class JdbcUserRepository implements UserRepository {
 
     @Override
     public Set<User> getAll() {
-        String sql = "SELECT * FROM \"USER\"";
+        String sql = "SELECT * FROM `USER`";
         Set<User> users = new HashSet<>();
 
         try (var connection = dataSource.getConnection();
@@ -117,7 +118,7 @@ public class JdbcUserRepository implements UserRepository {
 
     @Override
     public User findByEmail(String email) {
-        String sql = "SELECT * FROM \"USER\" WHERE EMAIL = ?";
+        String sql = "SELECT * FROM `USER` WHERE EMAIL = ?";
         try (var connection = dataSource.getConnection();
              var ps = connection.prepareStatement(sql)) {
 
@@ -135,6 +136,7 @@ public class JdbcUserRepository implements UserRepository {
 
         return null;
     }
+
 
     private User buildUserFromResultSet(java.sql.ResultSet rs) throws SQLException {
         User user = new UserImpl();

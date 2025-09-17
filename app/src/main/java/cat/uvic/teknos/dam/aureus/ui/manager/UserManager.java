@@ -64,17 +64,21 @@ public class UserManager {
      * Handles user input and executes corresponding operations.
      */
     public void run() {
-        System.out.println("User Management, type: ");
-        System.out.println("1 - to show all users list");
-        System.out.println("2 - to view specific user");
-        System.out.println("3 - to save new user");
-        System.out.println("4 - to delete existing user");
-        System.out.println("5 - to exit user menu");
-
         var repository = repositoryFactory.getUserRepository();
-
         var command = "";
-        while (!Objects.equals(command = scanner.nextLine(), "5")) {
+
+        while (!Objects.equals(command, "5")) {
+            // 👉 Muestra siempre el menú antes de pedir comando
+            System.out.println("\nUser Management, type: ");
+            System.out.println("1 - to show all users list");
+            System.out.println("2 - to view specific user");
+            System.out.println("3 - to save new user");
+            System.out.println("4 - to delete existing user");
+            System.out.println("5 - to exit user menu");
+            System.out.print("Select an option: ");
+
+            command = scanner.nextLine();
+
             switch (command) {
                 case "1":
                     displayAllUsers();
@@ -141,10 +145,15 @@ public class UserManager {
                     }
                     break;
 
+                case "5":
+                    System.out.println("Exiting user menu...");
+                    break;
+
                 default:
                     System.out.println("Invalid command");
                     break;
             }
         }
     }
+
 }
