@@ -24,7 +24,7 @@ public class JpaUser implements User {
     @Column(name = "USER_ID")
     private Integer id;
 
-    @Column(name = "USERNAME", unique = true, nullable = false)
+    @Column(name = "USERNAME",nullable = false)
     private String username;
 
     @Column(name = "EMAIL", unique = true, nullable = false)

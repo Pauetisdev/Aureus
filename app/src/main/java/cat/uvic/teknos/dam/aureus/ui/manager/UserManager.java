@@ -75,7 +75,7 @@ public class UserManager {
             System.out.println("3 - to save new user");
             System.out.println("4 - to delete existing user");
             System.out.println("5 - to exit user menu");
-            System.out.print("Select an option: ");
+            System.out.println("Select an option: ");
 
             command = scanner.nextLine();
 
@@ -105,17 +105,17 @@ public class UserManager {
                     break;
 
                 case "3":
-                    System.out.println("Enter username: ");
+                    System.out.print("Enter username: ");
                     var username = scanner.nextLine();
-                    System.out.println("Enter email: ");
+                    System.out.print("Enter email: ");
                     var newEmail = scanner.nextLine();
 
                     if (repository.findByEmail(newEmail) != null) {
-                        System.out.println("Error: A user with this email already exists");
+                        System.out.print("Error: A user with this email already exists");
                         break;
                     }
 
-                    System.out.println("Enter password: ");
+                    System.out.print("Enter password: ");
                     var password = scanner.nextLine();
 
                     var newUser = modelFactory.newUser();

@@ -113,7 +113,7 @@ public class UserDetailManager {
         try {
             displayAvailableUsers();
 
-            System.out.println("\nEnter User ID:");
+            System.out.print("\nEnter User ID:");
             var userId = Integer.parseInt(scanner.nextLine());
             var user = repositoryFactory.getUserRepository().get(userId);
 
@@ -135,19 +135,19 @@ public class UserDetailManager {
 
             System.out.println("\nEnter new details:");
 
-            System.out.println("Phone:");
+            System.out.print("Phone: ");
             var phone = scanner.nextLine();
             detail.setPhone(phone.isEmpty() ? null : phone);
 
-            System.out.println("Gender:");
+            System.out.print("Gender: ");
             var gender = scanner.nextLine();
             detail.setGender(gender.isEmpty() ? null : gender);
 
-            System.out.println("Nationality:");
+            System.out.print("Nationality: ");
             var nationality = scanner.nextLine();
             detail.setNationality(nationality.isEmpty() ? null : nationality);
 
-            System.out.println("Birth date (YYYY-MM-DD):");
+            System.out.print("Birth date (YYYY-MM-DD):");
             var birthdateStr = scanner.nextLine();
             if (!birthdateStr.isEmpty()) {
                 try {
