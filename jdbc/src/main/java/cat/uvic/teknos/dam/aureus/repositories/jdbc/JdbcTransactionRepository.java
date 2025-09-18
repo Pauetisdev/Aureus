@@ -10,9 +10,8 @@ import cat.uvic.teknos.dam.aureus.repositories.jdbc.exceptions.*;
 
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+
 
 public class JdbcTransactionRepository implements TransactionRepository {
     private final DataSource dataSource;
@@ -120,8 +119,8 @@ public class JdbcTransactionRepository implements TransactionRepository {
     }
 
     @Override
-    public Set<Transaction> getAll() {
-        Set<Transaction> transactions = new HashSet<>();
+    public List<Transaction> getAll() {
+        List<Transaction> transactions = new ArrayList<>();
         String sql = "SELECT * FROM \"TRANSACTION\"";
 
         try (Connection conn = dataSource.getConnection();
@@ -133,7 +132,6 @@ public class JdbcTransactionRepository implements TransactionRepository {
                 Timestamp transactionDate = rs.getTimestamp("TRANSACTION_DATE");
                 int buyerId = rs.getInt("BUYER_ID");
                 int sellerId = rs.getInt("SELLER_ID");
-                // Aquí puedes llamar a userRepository.get porque abre su propia conexión
                 User buyer = userRepository.get(buyerId);
                 User seller = userRepository.get(sellerId);
 
@@ -152,6 +150,7 @@ public class JdbcTransactionRepository implements TransactionRepository {
 
         return transactions;
     }
+
 
     public List<Transaction> findByDateRange(Timestamp start, Timestamp end) {
         if (start == null || end == null) {

@@ -87,13 +87,14 @@ public class JpaCoinRepository implements Repository<Integer, JpaCoin> {
     }
 
     @Override
-    public Set<JpaCoin> getAll() {
+    public List<JpaCoin> getAll() {
         try {
-            return new HashSet<>(entityManager.createQuery("FROM JpaCoin", JpaCoin.class).getResultList());
+            return entityManager.createQuery("FROM JpaCoin", JpaCoin.class).getResultList();
         } catch (Exception e) {
             throw new RepositoryException("Error retrieving all coins", e);
         }
     }
+
 
     public List<JpaCoin> findByMaterial(String material) {
         if (material == null || material.trim().isEmpty()) {

@@ -89,14 +89,15 @@ public class JpaUserRepository implements UserRepository {
     }
 
     @Override
-    public Set<User> getAll() {
+    public List<User> getAll() {
         try {
             List<JpaUser> jpaUsers = entityManager.createQuery("SELECT u FROM JpaUser u", JpaUser.class).getResultList();
-            return jpaUsers.stream().map(u -> (User) u).collect(Collectors.toSet());
+            return jpaUsers.stream().map(u -> (User) u).collect(Collectors.toList());
         } catch (Exception e) {
             throw new RepositoryException("Error retrieving all users", e);
         }
     }
+
 
     @Override
     public User findByEmail(String email) {

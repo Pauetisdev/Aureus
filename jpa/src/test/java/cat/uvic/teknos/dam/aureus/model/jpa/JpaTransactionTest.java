@@ -9,7 +9,7 @@ import org.junit.jupiter.api.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Set;
+
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -86,7 +86,7 @@ class JpaTransactionTest {
     @Order(3)
     @DisplayName("Debe obtener todas las transacciones")
     void shouldGetAllTransactions() {
-        Set<JpaTransaction> transactions = repository.getAll();
+        List<JpaTransaction> transactions = repository.getAll();
 
         assertNotNull(transactions);
         assertFalse(transactions.isEmpty());

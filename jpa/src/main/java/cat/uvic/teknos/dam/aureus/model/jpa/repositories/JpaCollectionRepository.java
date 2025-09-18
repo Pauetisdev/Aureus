@@ -6,8 +6,7 @@ import cat.uvic.teknos.dam.aureus.repositories.jdbc.exceptions.*;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 
 public class JpaCollectionRepository implements Repository<Integer, JpaCollection> {
     private final EntityManager entityManager;
@@ -87,11 +86,12 @@ public class JpaCollectionRepository implements Repository<Integer, JpaCollectio
     }
 
     @Override
-    public Set<JpaCollection> getAll() {
+    public List<JpaCollection> getAll() {
         try {
-            return new HashSet<>(entityManager.createQuery("FROM JpaCollection", JpaCollection.class).getResultList());
+            return entityManager.createQuery("FROM JpaCollection", JpaCollection.class).getResultList();
         } catch (Exception e) {
             throw new RepositoryException("Error retrieving all collections", e);
         }
     }
+
 }

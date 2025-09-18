@@ -12,7 +12,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.Scanner;
-import java.util.Set;
+import java.util.List;
 
 /**
  * Manages user details operations including creation, display, and deletion.
@@ -89,7 +89,7 @@ public class UserDetailManager {
      * Uses ASCII table format for better readability.
      */
     private void displayAvailableUsers() {
-        Set<User> users = repositoryFactory.getUserRepository().getAll();
+        List<User> users = repositoryFactory.getUserRepository().getAll();
         if (users.isEmpty()) {
             System.out.println("No users available in the system");
             return;

@@ -44,7 +44,7 @@ public class JdbcCoinCollectionRepositoryIT {
         st.execute("""
             CREATE TABLE "USER" (
                 USER_ID INT AUTO_INCREMENT PRIMARY KEY,
-                USERNAME VARCHAR(50) NOT NULL UNIQUE,
+                USERNAME VARCHAR(50) NOT NULL,
                 EMAIL VARCHAR(100) NOT NULL UNIQUE,
                 PASSWORD_HASH VARCHAR(64) NOT NULL,
                 JOIN_DATE TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -203,8 +203,9 @@ public class JdbcCoinCollectionRepositoryIT {
         assertFalse(allCoinCollections.isEmpty(), "La lista no debe estar vacía");
         assertEquals(1, allCoinCollections.size(), "Debe haber un único elemento");
 
-        CoinCollection retrieved = allCoinCollections.iterator().next();
+        CoinCollection retrieved = allCoinCollections.get(0);
         assertEquals(coin.getId(), retrieved.getCoin().getId(), "Coin ID debe coincidir");
         assertEquals(collection.getId(), retrieved.getCollection().getId(), "Collection ID debe coincidir");
     }
+
 }

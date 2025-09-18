@@ -10,7 +10,9 @@ import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.DataSource;
 import cat.uvic.teknos.dam.aureus.repositories.jdbc.exceptions.*;
 
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class JdbcCollectionRepository implements CollectionRepository {
@@ -126,8 +128,8 @@ public class JdbcCollectionRepository implements CollectionRepository {
     }
 
     @Override
-    public Set<Collection> getAll() {
-        Set<Collection> collections = new HashSet<>();
+    public List<Collection> getAll() {
+        List<Collection> collections = new ArrayList<>();
         String sql = "SELECT c.*, u.USERNAME as USER_USERNAME " +
                 "FROM COLLECTION c " +
                 "JOIN \"USER\" u ON c.USER_ID = u.USER_ID";

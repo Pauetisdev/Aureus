@@ -127,8 +127,8 @@ public class JdbcCoinRepository implements CoinRepository {
     }
 
     @Override
-    public Set<Coin> getAll() {
-        Set<Coin> coins = new HashSet<>();
+    public List<Coin> getAll() {
+        List<Coin> coins = new ArrayList<>();
         try (var connection = dataSource.getConnection();
              var ps = connection.prepareStatement("SELECT * FROM COIN");
              var rs = ps.executeQuery()) {
@@ -156,6 +156,7 @@ public class JdbcCoinRepository implements CoinRepository {
         }
         return coins;
     }
+
 
     @Override
     public List<Coin> findByMaterial(String material) {

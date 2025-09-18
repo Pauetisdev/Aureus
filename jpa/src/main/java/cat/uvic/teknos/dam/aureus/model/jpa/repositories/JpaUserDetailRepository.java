@@ -7,7 +7,7 @@ import cat.uvic.teknos.dam.aureus.repositories.jdbc.exceptions.*;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
 import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 
 @SuppressWarnings("unused")
 public class JpaUserDetailRepository implements Repository<Integer, JpaUserDetail> {
@@ -87,11 +87,12 @@ public class JpaUserDetailRepository implements Repository<Integer, JpaUserDetai
     }
 
     @Override
-    public Set<JpaUserDetail> getAll() {
+    public List<JpaUserDetail> getAll() {
         try {
-            return new HashSet<>(entityManager.createQuery("FROM JpaUserDetail", JpaUserDetail.class).getResultList());
+            return entityManager.createQuery("FROM JpaUserDetail", JpaUserDetail.class).getResultList();
         } catch (Exception e) {
             throw new RepositoryException("Error retrieving all user details", e);
         }
     }
+
 }

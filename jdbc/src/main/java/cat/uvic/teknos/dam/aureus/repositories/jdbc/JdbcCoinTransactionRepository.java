@@ -67,8 +67,8 @@ public class JdbcCoinTransactionRepository implements CoinTransactionRepository 
     }
 
     @Override
-    public Set<CoinTransaction> getAll() {
-        Set<CoinTransaction> coinTransactions = new HashSet<>();
+    public List<CoinTransaction> getAll() {
+        List<CoinTransaction> coinTransactions = new ArrayList<>();
         List<int[]> ids = new ArrayList<>();
         String sql = "SELECT COIN_ID, TRANSACTION_ID FROM COIN_TRANSACTION";
         try (
@@ -92,4 +92,5 @@ public class JdbcCoinTransactionRepository implements CoinTransactionRepository 
         }
         return coinTransactions;
     }
+
 }

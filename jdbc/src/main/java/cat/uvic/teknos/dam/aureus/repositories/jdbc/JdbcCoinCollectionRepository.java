@@ -67,8 +67,8 @@ public class JdbcCoinCollectionRepository implements CoinCollectionRepository {
     }
 
     @Override
-    public Set<CoinCollection> getAll() {
-        Set<CoinCollection> coinCollections = new HashSet<>();
+    public List<CoinCollection> getAll() {
+        List<CoinCollection> coinCollections = new ArrayList<>();
         List<int[]> ids = new ArrayList<>();
         try (var connection = dataSource.getConnection();
              var ps = connection.prepareStatement("SELECT * FROM COIN_COLLECTION");
@@ -93,6 +93,7 @@ public class JdbcCoinCollectionRepository implements CoinCollectionRepository {
         }
         return coinCollections;
     }
+
 
     @Override
     public List<CoinCollection> findByCollectionId(Integer collectionId) {

@@ -9,7 +9,7 @@ import org.junit.jupiter.api.*;
 import java.time.LocalDate;
 import java.sql.Connection;
 import java.sql.Statement;
-import java.util.Set;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -132,7 +132,7 @@ class JdbcUserDetailRepositoryIT {
             repo.save(ud);
         }
 
-        Set<UserDetail> all = repo.getAll();
+        List<UserDetail> all = repo.getAll();
         assertNotNull(all);
         assertEquals(3, all.size());
     }

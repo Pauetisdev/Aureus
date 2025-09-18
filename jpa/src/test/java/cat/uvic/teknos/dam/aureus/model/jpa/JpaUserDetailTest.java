@@ -11,7 +11,7 @@ import org.junit.jupiter.api.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Set;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -90,7 +90,7 @@ class JpaUserDetailTest {
     @Order(3)
     @DisplayName("Should get all user details")
     void shouldGetAllUserDetails() {
-        Set<JpaUserDetail> details = detailRepository.getAll();
+        List<JpaUserDetail> details = detailRepository.getAll();
         assertNotNull(details);
         assertFalse(details.isEmpty());
         assertTrue(details.size() >= 1);

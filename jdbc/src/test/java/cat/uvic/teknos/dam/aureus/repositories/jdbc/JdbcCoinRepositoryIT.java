@@ -12,7 +12,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
-import java.util.Set;
+
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -132,9 +132,10 @@ class JdbcCoinRepositoryIT {
         repository.save(c1);
         repository.save(c2);
 
-        Set<Coin> allCoins = repository.getAll();
+        List<Coin> allCoins = repository.getAll();
         assertEquals(2, allCoins.size());
     }
+
 
     @Test
     void testFindByMaterial() {

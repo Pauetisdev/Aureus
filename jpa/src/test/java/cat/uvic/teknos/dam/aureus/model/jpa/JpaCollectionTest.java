@@ -9,7 +9,7 @@ import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
 import org.junit.jupiter.api.*;
 
-import java.util.Set;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -89,7 +89,7 @@ class JpaCollectionTest {
     @Test
     @Order(3)
     void shouldGetAllCollections() {
-        Set<JpaCollection> collections = repository.getAll();
+        List<JpaCollection> collections = repository.getAll();
         assertNotNull(collections);
         assertFalse(collections.isEmpty());
         assertTrue(collections.size() >= 1);

@@ -9,7 +9,6 @@ import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -82,7 +81,7 @@ class JpaCoinTest {
     @DisplayName("Should get all coins")
     void shouldGetAllCoins() {
         // Act
-        Set<JpaCoin> coins = repository.getAll();
+        List<JpaCoin> coins = repository.getAll();
 
         // Assert
         assertNotNull(coins);

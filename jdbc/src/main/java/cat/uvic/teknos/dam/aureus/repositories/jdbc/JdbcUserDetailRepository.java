@@ -8,8 +8,9 @@ import cat.uvic.teknos.dam.aureus.repositories.jdbc.exceptions.CrudException;
 
 import java.sql.*;
 import java.time.LocalDate;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
+
 
 public class JdbcUserDetailRepository implements UserDetailRepository {
 
@@ -98,8 +99,8 @@ public class JdbcUserDetailRepository implements UserDetailRepository {
     }
 
     @Override
-    public Set<UserDetail> getAll() {
-        Set<UserDetail> userDetails = new HashSet<>();
+    public List<UserDetail> getAll() {
+        List<UserDetail> userDetails = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection();
              Statement statement = connection.createStatement();
@@ -111,7 +112,7 @@ public class JdbcUserDetailRepository implements UserDetailRepository {
 
                 Date sqlDate = rs.getDate("BIRTHDATE");
                 if (sqlDate != null) {
-                    userDetail.setBirthdate(sqlDate.toLocalDate()); // ✅ Conversión correcta
+                    userDetail.setBirthdate(sqlDate.toLocalDate());
                 } else {
                     userDetail.setBirthdate(null);
                 }

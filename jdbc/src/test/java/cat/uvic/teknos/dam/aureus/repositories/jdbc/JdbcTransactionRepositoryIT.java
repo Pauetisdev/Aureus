@@ -12,7 +12,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.util.Set;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -36,7 +36,6 @@ public class JdbcTransactionRepositoryIT {
         );
 
         try (Connection conn = dataSource.getConnection(); Statement st = conn.createStatement()) {
-            // Usar "USER" entre comillas dobles
             st.execute("CREATE TABLE \"USER\" (" +
                     "USER_ID INT PRIMARY KEY AUTO_INCREMENT, " +
                     "USERNAME VARCHAR(255), " +
@@ -44,7 +43,6 @@ public class JdbcTransactionRepositoryIT {
                     "PASSWORD_HASH VARCHAR(255), " +
                     "JOIN_DATE TIMESTAMP)");
 
-            // También TRANSACTION es reservada, así que ponla entre comillas dobles
             st.execute("CREATE TABLE \"TRANSACTION\" (" +
                     "TRANSACTION_ID INT PRIMARY KEY AUTO_INCREMENT, " +
                     "TRANSACTION_DATE TIMESTAMP, " +
@@ -73,10 +71,10 @@ public class JdbcTransactionRepositoryIT {
 
         transactionRepository.save(tx);
 
-        Set<Transaction> allTransactions = transactionRepository.getAll();
+        List<Transaction> allTransactions = transactionRepository.getAll();
         assertFalse(allTransactions.isEmpty(), "Debe haber al menos una transacción guardada");
 
-        Transaction fetched = allTransactions.iterator().next();
+        Transaction fetched = allTransactions.get(0);
         assertEquals(1, fetched.getBuyer().getId());
         assertEquals(2, fetched.getSeller().getId());
     }

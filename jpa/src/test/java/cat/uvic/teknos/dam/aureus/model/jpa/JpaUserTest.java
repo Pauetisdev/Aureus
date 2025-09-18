@@ -8,7 +8,7 @@ import jakarta.persistence.Persistence;
 import org.junit.jupiter.api.*;
 
 import java.time.LocalDateTime;
-import java.util.Set;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -80,7 +80,7 @@ class JpaUserTest {
     @DisplayName("Should get all users")
     void shouldGetAllUsers() {
         // Act
-        Set<User> users = repository.getAll();
+        List<User> users = repository.getAll();
 
         // Assert
         assertNotNull(users);

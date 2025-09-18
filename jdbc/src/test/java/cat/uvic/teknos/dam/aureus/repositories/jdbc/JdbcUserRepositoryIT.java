@@ -6,7 +6,7 @@ import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.SingleConnection
 import org.junit.jupiter.api.*;
 
 import java.sql.Statement;
-import java.util.Set;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -59,7 +59,7 @@ class JdbcUserRepositoryIT {
         userRepository.save(user);
         assertNotNull(userRepository.findByEmail("john@example.com"));
 
-        var fetched = userRepository.getAll().iterator().next();
+        var fetched = userRepository.getAll().get(0);
         assertEquals(user.getUsername(), fetched.getUsername());
         assertEquals(user.getEmail(), fetched.getEmail());
         assertEquals(user.getPasswordHash(), fetched.getPasswordHash());
@@ -116,7 +116,7 @@ class JdbcUserRepositoryIT {
         userRepository.save(user1);
         userRepository.save(user2);
 
-        Set<User> users = userRepository.getAll();
+        List<User> users = userRepository.getAll();
         assertEquals(2, users.size());
     }
 

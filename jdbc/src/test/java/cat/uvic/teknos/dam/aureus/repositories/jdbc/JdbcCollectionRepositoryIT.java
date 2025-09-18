@@ -13,7 +13,7 @@ import org.junit.jupiter.api.*;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Set;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -70,10 +70,10 @@ public class JdbcCollectionRepositoryIT {
 
         collectionRepository.save(collection);
 
-        Set<Collection> all = collectionRepository.getAll();
+        List<Collection> all = collectionRepository.getAll();
         assertFalse(all.isEmpty(), "Debe haber al menos una colección guardada");
 
-        Collection retrieved = all.iterator().next();
+        Collection retrieved = all.get(0);
         assertEquals("Monedas Romanas", retrieved.getCollectionName());
         assertEquals("Colección de denarios y áureos.", retrieved.getDescription());
         assertEquals(user.getId(), retrieved.getUser().getId());

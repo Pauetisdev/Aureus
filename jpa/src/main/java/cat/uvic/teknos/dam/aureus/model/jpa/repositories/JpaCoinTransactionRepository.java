@@ -10,6 +10,7 @@ import jakarta.persistence.EntityTransaction;
 import jakarta.persistence.TypedQuery;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.List;
 
 public class JpaCoinTransactionRepository implements Repository<CoinTransactionId, JpaCoinTransaction> {
 
@@ -94,12 +95,13 @@ public class JpaCoinTransactionRepository implements Repository<CoinTransactionI
     }
 
     @Override
-    public Set<JpaCoinTransaction> getAll() {
+    public List<JpaCoinTransaction> getAll() {
         try {
             TypedQuery<JpaCoinTransaction> query = em.createQuery("SELECT ct FROM JpaCoinTransaction ct", JpaCoinTransaction.class);
-            return new HashSet<>(query.getResultList());
+            return query.getResultList();
         } catch (Exception e) {
             throw new RepositoryException("Error retrieving all coin transactions", e);
         }
     }
+
 }

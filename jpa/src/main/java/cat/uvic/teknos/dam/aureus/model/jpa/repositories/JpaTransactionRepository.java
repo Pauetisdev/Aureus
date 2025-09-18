@@ -88,13 +88,14 @@ public class JpaTransactionRepository implements Repository<Integer, JpaTransact
     }
 
     @Override
-    public Set<JpaTransaction> getAll() {
+    public List<JpaTransaction> getAll() {
         try {
-            return new HashSet<>(entityManager.createQuery("SELECT t FROM JpaTransaction t", JpaTransaction.class).getResultList());
+            return entityManager.createQuery("SELECT t FROM JpaTransaction t", JpaTransaction.class).getResultList();
         } catch (Exception e) {
             throw new RepositoryException("Error retrieving all transactions", e);
         }
     }
+
 
     public List<JpaTransaction> findByDateRange(LocalDateTime start, LocalDateTime end) {
         if (start == null || end == null) {

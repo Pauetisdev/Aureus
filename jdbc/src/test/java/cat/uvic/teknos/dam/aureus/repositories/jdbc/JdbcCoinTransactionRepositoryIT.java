@@ -10,7 +10,7 @@ import org.junit.jupiter.api.*;
 
 import java.math.BigDecimal;
 import java.sql.Statement;
-import java.util.Set;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -166,10 +166,10 @@ class JdbcCoinTransactionRepositoryIT {
 
         coinTransactionRepository.save(coinTransaction);
 
-        Set<CoinTransaction> result = coinTransactionRepository.getAll();
+        List<CoinTransaction> result = coinTransactionRepository.getAll();
         assertEquals(1, result.size());
 
-        CoinTransaction ct = result.iterator().next();
+        CoinTransaction ct = result.get(0);
         assertEquals(coin.getId(), ct.getCoin().getId());
         assertEquals(transaction.getId(), ct.getTransaction().getId());
     }
@@ -186,7 +186,7 @@ class JdbcCoinTransactionRepositoryIT {
         coinTransactionRepository.save(coinTransaction);
         coinTransactionRepository.delete(coinTransaction);
 
-        Set<CoinTransaction> result = coinTransactionRepository.getAll();
+        List<CoinTransaction> result = coinTransactionRepository.getAll();
         assertTrue(result.isEmpty());
     }
 }

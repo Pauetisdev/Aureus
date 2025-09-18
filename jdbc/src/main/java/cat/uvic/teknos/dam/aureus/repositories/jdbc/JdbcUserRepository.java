@@ -8,8 +8,8 @@ import cat.uvic.teknos.dam.aureus.repositories.jdbc.exceptions.CrudException;
 
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 public class JdbcUserRepository implements UserRepository {
     private final DataSource dataSource;
@@ -97,9 +97,9 @@ public class JdbcUserRepository implements UserRepository {
     }
 
     @Override
-    public Set<User> getAll() {
+    public List<User> getAll() {
         String sql = "SELECT * FROM `USER`";
-        Set<User> users = new HashSet<>();
+        List<User> users = new ArrayList<>();
 
         try (var connection = dataSource.getConnection();
              var ps = connection.prepareStatement(sql);
