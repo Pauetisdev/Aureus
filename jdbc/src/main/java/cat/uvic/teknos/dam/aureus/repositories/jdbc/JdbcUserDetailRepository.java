@@ -22,30 +22,39 @@ public class JdbcUserDetailRepository implements UserDetailRepository {
 
     @Override
     public void save(UserDetail userDetail) {
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(
-                     "MERGE INTO USER_DETAIL (USER_ID, BIRTHDATE, PHONE, GENDER, NATIONALITY) VALUES (?, ?, ?, ?, ?)"
-             )) {
+        String sql = """
+        INSERT INTO USER_DETAIL (USER_ID, BIRTHDATE, PHONE, GENDER, NATIONALITY)
+        VALUES (?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+            BIRTHDATE = VALUES(BIRTHDATE),
+            PHONE = VALUES(PHONE),
+            GENDER = VALUES(GENDER),
+            NATIONALITY = VALUES(NATIONALITY)
+        """;
 
-            preparedStatement.setInt(1, userDetail.getId());
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+
+            ps.setInt(1, userDetail.getId());
 
             LocalDate birthdate = userDetail.getBirthdate();
             if (birthdate != null) {
-                preparedStatement.setDate(2, Date.valueOf(birthdate));
+                ps.setDate(2, Date.valueOf(birthdate));
             } else {
-                preparedStatement.setNull(2, Types.DATE);
+                ps.setNull(2, Types.DATE);
             }
 
-            preparedStatement.setString(3, userDetail.getPhone());
-            preparedStatement.setString(4, userDetail.getGender());
-            preparedStatement.setString(5, userDetail.getNationality());
+            ps.setString(3, userDetail.getPhone());
+            ps.setString(4, userDetail.getGender());
+            ps.setString(5, userDetail.getNationality());
 
-            preparedStatement.executeUpdate();
+            ps.executeUpdate();
 
         } catch (SQLException e) {
             throw new CrudException("Error saving UserDetail", e);
         }
     }
+
 
     @Override
     public void delete(UserDetail userDetail) {

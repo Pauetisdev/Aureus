@@ -48,10 +48,13 @@ public class UserDetailManager {
     private void displayUserDetail(Integer id) {
         var detail = repositoryFactory.getUserDetailRepository().get(id);
         if (detail != null) {
+            User user = repositoryFactory.getUserRepository().get(detail.getId());
+            String username = (user != null) ? user.getUsername() : "-";
+
             System.out.println("\nDetails found:");
             System.out.println("----------------------------------------");
             System.out.println("ID: " + detail.getId());
-            System.out.println("User: " + (detail.getUser() != null ? detail.getUser().getUsername() : "N/A"));
+            System.out.println("User: " + username);
             System.out.println("Phone: " + (detail.getPhone() != null ? detail.getPhone() : "N/A"));
             System.out.println("Gender: " + (detail.getGender() != null ? detail.getGender() : "N/A"));
             System.out.println("Nationality: " + (detail.getNationality() != null ? detail.getNationality() : "N/A"));
@@ -62,6 +65,7 @@ public class UserDetailManager {
             System.out.println("Details not found for ID: " + id);
         }
     }
+
 
     /**
      * Displays a list of all available user details in the system.
@@ -78,11 +82,15 @@ public class UserDetailManager {
         System.out.println("----------------------------------------");
         System.out.println(AsciiTable.getTable(details, Arrays.asList(
                 new Column().header("ID").with(d -> Integer.toString(d.getId())),
-                new Column().header("User").with(d -> d.getUser() != null ? d.getUser().getUsername() : "N/A"),
+                new Column().header("User").with(d -> {
+                    User user = repositoryFactory.getUserRepository().get(d.getId());
+                    return (user != null) ? user.getUsername() : "-";
+                }),
                 new Column().header("Phone").with(d -> d.getPhone() != null ? d.getPhone() : "N/A")
         )));
         System.out.println("----------------------------------------");
     }
+
 
     /**
      * Displays a list of all available users in the system.
@@ -190,7 +198,7 @@ public class UserDetailManager {
             switch (command) {
                 case "1":
                     displayAvailableUserDetails();
-                    System.out.println("\nEnter user details ID:");
+                    System.out.print("\nEnter user details ID:");
                     try {
                         var id = Integer.parseInt(scanner.nextLine());
                         displayUserDetail(id);
@@ -205,15 +213,14 @@ public class UserDetailManager {
 
                 case "3":
                     displayAvailableUserDetails();
-                    System.out.println("\nEnter details ID to delete:");
+                    System.out.print("\nEnter details ID to delete:");
                     try {
                         var id = Integer.parseInt(scanner.nextLine());
                         var detailToDelete = repositoryFactory.getUserDetailRepository().get(id);
                         if (detailToDelete != null) {
-                            System.out.println("\nDetails to be deleted:");
                             displayUserDetail(detailToDelete.getId());
 
-                            System.out.println("Are you sure you want to delete these details? (yes/no):");
+                            System.out.print("Are you sure you want to delete these details? (yes/no):");
                             if (scanner.nextLine().equalsIgnoreCase("yes")) {
                                 repositoryFactory.getUserDetailRepository().delete(detailToDelete);
                                 System.out.println("Details successfully deleted");

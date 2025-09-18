@@ -75,7 +75,7 @@ public class UserManager {
             System.out.println("3 - to save new user");
             System.out.println("4 - to delete existing user");
             System.out.println("5 - to exit user menu");
-            System.out.println("Select an option: ");
+            System.out.print("Select an option: ");
 
             command = scanner.nextLine();
 
