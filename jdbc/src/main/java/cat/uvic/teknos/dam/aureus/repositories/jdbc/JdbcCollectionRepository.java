@@ -44,20 +44,23 @@ public class JdbcCollectionRepository implements CollectionRepository {
         }
 
         String sql;
-        if (collection.getId() == null) {
+        boolean isInsert = (collection.getId() == null);
+
+        if (isInsert) {
             sql = "INSERT INTO COLLECTION (COLLECTION_NAME, DESCRIPTION, USER_ID) VALUES (?, ?, ?)";
         } else {
             sql = "UPDATE COLLECTION SET COLLECTION_NAME = ?, DESCRIPTION = ?, USER_ID = ? WHERE COLLECTION_ID = ?";
         }
 
         try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+             PreparedStatement ps = conn.prepareStatement(sql,
+                     isInsert ? Statement.RETURN_GENERATED_KEYS : Statement.NO_GENERATED_KEYS)) {
 
             ps.setString(1, collection.getCollectionName());
             ps.setString(2, collection.getDescription());
             ps.setInt(3, collection.getUser().getId());
 
-            if (collection.getId() != null) {
+            if (!isInsert) {
                 ps.setInt(4, collection.getId());
             }
 
@@ -66,10 +69,10 @@ public class JdbcCollectionRepository implements CollectionRepository {
                 throw new RepositoryException("Failed to save collection");
             }
 
-            if (collection.getId() == null) {
+            if (isInsert) {
                 try (ResultSet rs = ps.getGeneratedKeys()) {
                     if (rs.next()) {
-                        collection.setId(rs.getInt(1));
+                        collection.setId(rs.getInt(1)); // 🔥 ahora sí tienes el ID
                     }
                 }
             }
@@ -108,8 +111,9 @@ public class JdbcCollectionRepository implements CollectionRepository {
 
         String sql = "SELECT c.*, u.USERNAME as USER_USERNAME " +
                 "FROM COLLECTION c " +
-                "JOIN \"USER\" u ON c.USER_ID = u.USER_ID " +
+                "JOIN `USER` u ON c.USER_ID = u.USER_ID " +
                 "WHERE c.COLLECTION_ID = ?";
+
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -132,7 +136,9 @@ public class JdbcCollectionRepository implements CollectionRepository {
         List<Collection> collections = new ArrayList<>();
         String sql = "SELECT c.*, u.USERNAME as USER_USERNAME " +
                 "FROM COLLECTION c " +
-                "JOIN \"USER\" u ON c.USER_ID = u.USER_ID";
+                "JOIN `USER` u ON c.USER_ID = u.USER_ID";
+
+
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);

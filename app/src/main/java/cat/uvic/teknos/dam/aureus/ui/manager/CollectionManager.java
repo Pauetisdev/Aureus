@@ -154,26 +154,55 @@ public class CollectionManager {
      * Validates the input and saves the new collection to the repository.
      */
     private void createNewCollection() {
-        System.out.println("\nEnter new collection details:");
+        System.out.println("\nEnter new collection details");
 
-        System.out.println("Enter collection name:");
+        System.out.print("Enter collection name: ");
         var name = scanner.nextLine();
         if (name.trim().isEmpty()) {
             System.out.println("Collection name cannot be empty");
             return;
         }
 
-        System.out.println("Enter description:");
+        System.out.print("Enter description: ");
         var description = scanner.nextLine();
 
-        var newCollection = modelFactory.newCollection();
-        newCollection.setCollectionName(name);
-        newCollection.setDescription(description);
+        // Mostrar todos los usuarios disponibles
+        var users = repositoryFactory.getUserRepository().getAll();
+        if (users.isEmpty()) {
+            System.out.println("No users available. You must create a user first.");
+            return;
+        }
 
-        repositoryFactory.getCollectionRepository().save(newCollection);
-        System.out.println("\nCollection successfully created");
-        displayCollectionDetails(newCollection.getId());
+        System.out.println("\nAvailable users:");
+        System.out.println(AsciiTable.getTable(users, Arrays.asList(
+                new Column().header("User ID").with(u -> Integer.toString(u.getId())),
+                new Column().header("Username").with(u -> u.getUsername())
+        )));
+
+        System.out.print("\nEnter user ID to assign this collection: ");
+        try {
+            var userId = Integer.parseInt(scanner.nextLine());
+            var user = repositoryFactory.getUserRepository().get(userId);
+
+            if (user == null) {
+                System.out.println("Invalid user ID. Collection not created.");
+                return;
+            }
+
+            var newCollection = modelFactory.newCollection();
+            newCollection.setCollectionName(name);
+            newCollection.setDescription(description);
+            newCollection.setUser(user); // 🔥 ASIGNAMOS EL USUARIO
+
+            repositoryFactory.getCollectionRepository().save(newCollection);
+            System.out.println("\nCollection successfully created!");
+            displayCollectionDetails(newCollection.getId());
+
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid user ID format. Collection not created.");
+        }
     }
+
 
     /**
      * Deletes an existing collection after confirmation from the user.
@@ -181,7 +210,7 @@ public class CollectionManager {
      */
     private void deleteCollection() {
         displayAllCollections();
-        System.out.println("\nEnter collection ID to delete:");
+        System.out.print("\nEnter collection ID to delete:");
         try {
             var id = Integer.parseInt(scanner.nextLine());
             var collectionToDelete = repositoryFactory.getCollectionRepository().get(id);
