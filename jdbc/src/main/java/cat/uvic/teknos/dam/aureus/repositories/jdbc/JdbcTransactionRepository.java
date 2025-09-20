@@ -121,7 +121,7 @@ public class JdbcTransactionRepository implements TransactionRepository {
     @Override
     public List<Transaction> getAll() {
         List<Transaction> transactions = new ArrayList<>();
-        String sql = "SELECT * FROM \"TRANSACTION\"";
+        String sql = "SELECT * FROM TRANSACTION";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement st = conn.prepareStatement(sql);

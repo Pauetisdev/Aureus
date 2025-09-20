@@ -44,7 +44,7 @@ public class CoinTransactionManager {
             System.out.println("1 - Show all coins in transactions");
             System.out.println("2 - View specific transaction details");
             System.out.println("3 - Exit");
-            System.out.print("\nEnter your choice: ");
+            System.out.print("\nSelect an option: ");
 
             var repository = repositoryFactory.getCoinTransactionRepository();
             var command = scanner.nextLine();
@@ -78,9 +78,6 @@ public class CoinTransactionManager {
             } catch (Exception e) {
                 System.out.println("\nError: " + e.getMessage());
             }
-
-            System.out.println("\nPress Enter to continue...");
-            scanner.nextLine();
         }
     }
 
@@ -88,19 +85,25 @@ public class CoinTransactionManager {
      * Shows detailed information about a specific coin transaction.
      */
     private void viewTransactionDetails() {
+        var coinTransactions = repositoryFactory.getCoinTransactionRepository().getAll();
+
+        if (coinTransactions.isEmpty()) {
+            System.out.println("\nNo transactions available");
+            return;
+        }
+
         System.out.print("\nEnter coin ID: ");
         var coinId = Integer.parseInt(scanner.nextLine());
 
         System.out.print("Enter transaction ID: ");
         var transactionId = Integer.parseInt(scanner.nextLine());
 
-        var repository = repositoryFactory.getCoinTransactionRepository();
-        var matchingTransaction = repository.getAll().stream()
+        var matchingTransaction = coinTransactions.stream()
                 .filter(ct -> ct.getCoin().getId() == coinId &&
                         ct.getTransaction().getId() == transactionId)
                 .findFirst();
 
-        System.out.println(); // Blank line for better readability
+        System.out.println(); // Blank line
 
         if (matchingTransaction.isPresent()) {
             var ct = matchingTransaction.get();
@@ -115,4 +118,5 @@ public class CoinTransactionManager {
             System.out.println("Transaction not found");
         }
     }
+
 }

@@ -100,7 +100,7 @@ public class CollectionManager {
      */
     private void viewCollectionDetails() {
         displayAllCollections();
-        System.out.println("\nEnter collection ID:");
+        System.out.print("\nEnter collection ID:");
         try {
             var id = Integer.parseInt(scanner.nextLine());
             displayCollectionDetails(id);

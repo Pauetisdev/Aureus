@@ -4,11 +4,14 @@ import cat.uvic.teknos.dam.aureus.ModelFactory;
 import cat.uvic.teknos.dam.aureus.repositories.RepositoryFactory;
 import com.github.freva.asciitable.AsciiTable;
 import com.github.freva.asciitable.Column;
-
+import cat.uvic.teknos.dam.aureus.Coin;
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Scanner;
+import java.util.ArrayList;
+
 
 /**
  * Manages transaction operations in the AUREUS system.
@@ -36,6 +39,97 @@ public class TransactionManager {
         this.repositoryFactory = repositoryFactory;
         this.scanner = scanner;
     }
+
+    /**
+     * Handles the creation of a new transaction and the association of coins to it.
+     * The user is prompted to select a buyer, seller, and coins to include in the transaction.
+     */
+    private void handleCreateTransaction() {
+        try {
+            var transaction = modelFactory.newTransaction();
+
+            // Seleccionar comprador
+            System.out.println("\nAvailable users:");
+            repositoryFactory.getUserRepository().getAll().forEach(u ->
+                    System.out.printf("ID: %d, Username: %s%n", u.getId(), u.getUsername())
+            );
+            System.out.print("Enter Buyer ID: ");
+            var buyerId = Integer.parseInt(scanner.nextLine());
+            var buyer = repositoryFactory.getUserRepository().get(buyerId);
+            if (buyer == null) { System.out.println("Buyer not found"); return; }
+            transaction.setBuyer(buyer);
+
+            // Seleccionar vendedor
+            System.out.println("\nAvailable users:");
+            repositoryFactory.getUserRepository().getAll().forEach(u ->
+                    System.out.printf("ID: %d, Username: %s%n", u.getId(), u.getUsername())
+            );
+            System.out.print("Enter Seller ID: ");
+            var sellerId = Integer.parseInt(scanner.nextLine());
+            var seller = repositoryFactory.getUserRepository().get(sellerId);
+            if (seller == null) { System.out.println("Seller not found"); return; }
+            transaction.setSeller(seller);
+
+            transaction.setTransactionDate(new Timestamp(System.currentTimeMillis()));
+            repositoryFactory.getTransactionRepository().save(transaction);
+            System.out.println("Transaction created with ID: " + transaction.getId());
+
+            // Obtener monedas del vendedor usando CoinCollection
+            var allCoinCollections = repositoryFactory.getCoinCollectionRepository().getAll();
+            var sellerCoins = new ArrayList<Coin>();
+
+            for (var cc : allCoinCollections) {
+                var collection = cc.getCollection();
+                if (collection != null && collection.getUser().equals(seller.getId())) {
+                    sellerCoins.add(cc.getCoin());
+                }
+            }
+
+            if (sellerCoins.isEmpty()) {
+                System.out.println("Seller has no coins to sell");
+                return;
+            }
+
+            // Elegir monedas para la transacción
+            while (true) {
+                System.out.println("\nAdd a coin to the transaction? (y/n)");
+                var answer = scanner.nextLine().trim().toLowerCase();
+                if (!answer.equals("y")) break;
+
+                System.out.println("\nAvailable coins from seller:");
+                for (var c : sellerCoins) {
+                    System.out.printf("ID: %d, Name: %s, Material: %s, Year: %d%n",
+                            c.getId(), c.getCoinName(), c.getCoinMaterial(), c.getCoinYear());
+                }
+
+                System.out.print("Enter Coin ID: ");
+                var coinId = Integer.parseInt(scanner.nextLine());
+                var coin = sellerCoins.stream().filter(c -> c.getId().equals(coinId)).findFirst().orElse(null);
+                if (coin == null) { System.out.println("Coin not found"); continue; }
+
+                System.out.print("Enter transaction price: ");
+                var price = new BigDecimal(scanner.nextLine());
+
+                var coinTransaction = modelFactory.newCoinTransaction();
+                coinTransaction.setTransaction(transaction);
+                coinTransaction.setCoin(coin);
+                coinTransaction.setTransactionPrice(price);
+                coinTransaction.setCurrency("EUR");
+
+                repositoryFactory.getCoinTransactionRepository().save(coinTransaction);
+                System.out.println("Coin added to transaction.");
+
+                sellerCoins.remove(coin); // Evita vender la misma moneda dos veces
+            }
+
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid input");
+        } catch (Exception e) {
+            System.out.println("Error creating transaction: " + e.getMessage());
+        }
+    }
+
+
 
     /**
      * Displays all transactions in a formatted table.
@@ -86,13 +180,15 @@ public class TransactionManager {
             System.out.println("\nTransaction Management:");
             System.out.println("1 - View all transactions");
             System.out.println("2 - Search transaction by ID");
-            System.out.println("3 - Search transactions by date range");
-            System.out.println("4 - View coins in transaction");
-            System.out.println("5 - Exit");
+            System.out.println("3 - Create new transaction");
+            System.out.println("4 - Search transactions by date range");
+            System.out.println("5 - View coins in transaction");
+            System.out.println("6 - Exit");
 
+            System.out.print("Select an option: ");
             var command = scanner.nextLine();
 
-            if (Objects.equals(command, "5")) {
+            if (Objects.equals(command, "6")) {
                 break;
             }
 
@@ -100,8 +196,9 @@ public class TransactionManager {
                 switch (command) {
                     case "1" -> displayAllTransactions();
                     case "2" -> handleSearchById();
-                    case "3" -> handleDateRangeSearch();
-                    case "4" -> handleViewTransactionCoins();
+                    case "3" -> handleCreateTransaction();
+                    case "4" -> handleDateRangeSearch();
+                    case "5" -> handleViewTransactionCoins();
                     default -> System.out.println("Invalid command");
                 }
             } catch (Exception e) {
@@ -115,8 +212,21 @@ public class TransactionManager {
      * Displays detailed information about a specific transaction.
      */
     private void handleSearchById() {
-        displayAvailableTransactionIds();
-        System.out.println("Enter transaction ID:");
+        var transactions = repositoryFactory.getTransactionRepository().getAll();
+
+        if (transactions.isEmpty()) {
+            System.out.println("No transactions available");
+            return;
+        }
+
+        System.out.println("\nAvailable transaction IDs:");
+        transactions.stream()
+                .map(t -> t.getId().toString())
+                .sorted()
+                .forEach(id -> System.out.print(id + " "));
+        System.out.println("\n");
+
+        System.out.print("Enter transaction ID: ");
         try {
             var id = Integer.parseInt(scanner.nextLine());
             var transaction = repositoryFactory.getTransactionRepository().get(id);
@@ -136,11 +246,18 @@ public class TransactionManager {
         }
     }
 
+
     /**
      * Handles the search transactions by date range functionality.
      * Allows users to search for transactions within a specific time period.
      */
     private void handleDateRangeSearch() {
+        var transactions = repositoryFactory.getTransactionRepository().getAll();
+        if (transactions.isEmpty()) {
+            System.out.println("No transactions available");
+            return;
+        }
+
         System.out.println("Enter start date (YYYY-MM-DD HH:MM:SS):");
         var startStr = scanner.nextLine();
         System.out.println("Enter end date (YYYY-MM-DD HH:MM:SS):");
@@ -153,6 +270,7 @@ public class TransactionManager {
             System.out.println("Invalid date format");
         }
     }
+
 
     /**
      * Displays transactions that occurred within the specified date range.
@@ -180,8 +298,21 @@ public class TransactionManager {
      * Shows details of all coins involved in a specific transaction.
      */
     private void handleViewTransactionCoins() {
-        displayAvailableTransactionIds();
-        System.out.println("Enter transaction ID:");
+        var transactions = repositoryFactory.getTransactionRepository().getAll();
+
+        if (transactions.isEmpty()) {
+            System.out.println("No transactions available");
+            return;
+        }
+
+        System.out.println("\nAvailable transaction IDs:");
+        transactions.stream()
+                .map(t -> t.getId().toString())
+                .sorted()
+                .forEach(id -> System.out.print(id + " "));
+        System.out.println("\n");
+
+        System.out.print("Enter transaction ID: ");
         try {
             var transactionId = Integer.parseInt(scanner.nextLine());
             displayCoinsInTransaction(transactionId);
@@ -189,6 +320,7 @@ public class TransactionManager {
             System.out.println("Invalid ID");
         }
     }
+
 
     /**
      * Displays all coins associated with a specific transaction.
