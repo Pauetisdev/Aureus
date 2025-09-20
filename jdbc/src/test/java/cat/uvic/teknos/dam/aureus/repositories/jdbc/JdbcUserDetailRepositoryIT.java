@@ -23,7 +23,7 @@ class JdbcUserDetailRepositoryIT {
     void setupDatabase() throws Exception {
         String driver = "h2";
         String server = "mem";
-        String database = "testdb;DB_CLOSE_DELAY=-1";
+        String database = "testdb;DB_CLOSE_DELAY=-1;MODE=MySQL"; // <-- aquí el cambio
         String user = "sa";
         String password = "";
         var format = "jdbc:%s:%s:%s";
@@ -42,6 +42,7 @@ class JdbcUserDetailRepositoryIT {
                     ")");
         }
     }
+
 
     @AfterAll
     void tearDown() throws Exception {

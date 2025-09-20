@@ -173,7 +173,7 @@ public class CoinManager {
                             break;
                         }
 
-                        // Mostrar tabla con las monedas disponibles
+
                         System.out.println("Available coins:");
                         System.out.println(AsciiTable.getTable(coins, Arrays.asList(
                                 new Column().header("ID").with(c -> Integer.toString(((Coin) c).getId())),
