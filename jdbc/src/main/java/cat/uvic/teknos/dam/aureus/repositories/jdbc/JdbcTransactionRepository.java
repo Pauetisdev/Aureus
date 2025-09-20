@@ -3,6 +3,7 @@ package cat.uvic.teknos.dam.aureus.repositories.jdbc;
 import cat.uvic.teknos.dam.aureus.Transaction;
 import cat.uvic.teknos.dam.aureus.User;
 import cat.uvic.teknos.dam.aureus.impl.TransactionImpl;
+import cat.uvic.teknos.dam.aureus.impl.UserImpl;
 import cat.uvic.teknos.dam.aureus.repositories.TransactionRepository;
 import cat.uvic.teknos.dam.aureus.repositories.UserRepository;
 import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.DataSource;
@@ -11,7 +12,6 @@ import cat.uvic.teknos.dam.aureus.repositories.jdbc.exceptions.*;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-
 
 public class JdbcTransactionRepository implements TransactionRepository {
     private final DataSource dataSource;
@@ -30,11 +30,9 @@ public class JdbcTransactionRepository implements TransactionRepository {
         if (transaction == null) {
             throw new InvalidDataException("Transaction cannot be null");
         }
-
         if (transaction.getBuyer() == null || transaction.getSeller() == null) {
             throw new InvalidDataException("Buyer and Seller must be set");
         }
-
         if (userRepository.get(transaction.getBuyer().getId()) == null ||
                 userRepository.get(transaction.getSeller().getId()) == null) {
             throw new EntityNotFoundException("Buyer or Seller not found");
@@ -121,7 +119,12 @@ public class JdbcTransactionRepository implements TransactionRepository {
     @Override
     public List<Transaction> getAll() {
         List<Transaction> transactions = new ArrayList<>();
-        String sql = "SELECT * FROM TRANSACTION";
+        String sql = "SELECT t.*, " +
+                "b.USER_ID as BUYER_ID, b.USERNAME as BUYER_USERNAME, b.EMAIL as BUYER_EMAIL, " +
+                "s.USER_ID as SELLER_ID, s.USERNAME as SELLER_USERNAME, s.EMAIL as SELLER_EMAIL " +
+                "FROM TRANSACTION t " +
+                "JOIN USER b ON t.BUYER_ID = b.USER_ID " +
+                "JOIN USER s ON t.SELLER_ID = s.USER_ID";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement st = conn.prepareStatement(sql);
@@ -130,18 +133,27 @@ public class JdbcTransactionRepository implements TransactionRepository {
             while (rs.next()) {
                 int transactionId = rs.getInt("TRANSACTION_ID");
                 Timestamp transactionDate = rs.getTimestamp("TRANSACTION_DATE");
-                int buyerId = rs.getInt("BUYER_ID");
-                int sellerId = rs.getInt("SELLER_ID");
-                User buyer = userRepository.get(buyerId);
-                User seller = userRepository.get(sellerId);
 
-                Transaction tx = new TransactionImpl();
-                tx.setId(transactionId);
-                tx.setTransactionDate(transactionDate);
-                tx.setBuyer(buyer);
-                tx.setSeller(seller);
+                // Crear buyer desde el ResultSet
+                var buyer = new UserImpl(); // Asume que tienes UserImpl
+                buyer.setId(rs.getInt("BUYER_ID"));
+                buyer.setUsername(rs.getString("BUYER_USERNAME"));
+                buyer.setEmail(rs.getString("BUYER_EMAIL"));
 
-                transactions.add(tx);
+                // Crear seller desde el ResultSet
+                var seller = new UserImpl();
+                seller.setId(rs.getInt("SELLER_ID"));
+                seller.setUsername(rs.getString("SELLER_USERNAME"));
+                seller.setEmail(rs.getString("SELLER_EMAIL"));
+
+                // Crear transaction
+                var transaction = new TransactionImpl();
+                transaction.setId(transactionId);
+                transaction.setTransactionDate(transactionDate);
+                transaction.setBuyer(buyer);
+                transaction.setSeller(seller);
+
+                transactions.add(transaction);
             }
 
         } catch (SQLException e) {
@@ -150,7 +162,6 @@ public class JdbcTransactionRepository implements TransactionRepository {
 
         return transactions;
     }
-
 
     public List<Transaction> findByDateRange(Timestamp start, Timestamp end) {
         if (start == null || end == null) {
@@ -184,17 +195,19 @@ public class JdbcTransactionRepository implements TransactionRepository {
     }
 
     private Transaction buildTransaction(int id, Timestamp date, int buyerId, int sellerId) {
-        var transaction = new TransactionImpl();
-        transaction.setId(id);
-        transaction.setTransactionDate(date);
-
         var buyer = userRepository.get(buyerId);
         var seller = userRepository.get(sellerId);
 
-        if (buyer == null || seller == null) {
-            throw new EntityNotFoundException("Buyer or Seller not found");
+        if (buyer == null) {
+            throw new EntityNotFoundException("Buyer not found for transaction " + id);
+        }
+        if (seller == null) {
+            throw new EntityNotFoundException("Seller not found for transaction " + id);
         }
 
+        var transaction = new TransactionImpl();
+        transaction.setId(id);
+        transaction.setTransactionDate(date);
         transaction.setBuyer(buyer);
         transaction.setSeller(seller);
 

@@ -86,7 +86,7 @@ public class UserManager {
 
                 case "2":
                     displayAllUsers();
-                    System.out.println("\nEnter user ID to view details: ");
+                    System.out.print("\nEnter user ID to view details: ");
                     try {
                         var id = Integer.parseInt(scanner.nextLine());
                         var user = repository.get(id);

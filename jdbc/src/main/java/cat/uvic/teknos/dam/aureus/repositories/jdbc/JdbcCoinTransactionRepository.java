@@ -9,6 +9,8 @@ import cat.uvic.teknos.dam.aureus.repositories.CoinTransactionRepository;
 import cat.uvic.teknos.dam.aureus.repositories.TransactionRepository;
 import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.DataSource;
 import cat.uvic.teknos.dam.aureus.repositories.jdbc.exceptions.CrudException;
+import cat.uvic.teknos.dam.aureus.repositories.jdbc.model.JdbcCoinTransaction;
+
 import java.util.List;
 import java.util.ArrayList;
 
@@ -35,17 +37,21 @@ public class JdbcCoinTransactionRepository implements CoinTransactionRepository 
 
     @Override
     public void save(CoinTransaction value) {
+        String sql = "INSERT INTO COIN_TRANSACTION (COIN_ID, TRANSACTION_ID, TRANSACTION_PRICE, CURRENCY) VALUES (?, ?, ?, ?)";
         try (var connection = dataSource.getConnection();
-             var ps = connection.prepareStatement("INSERT INTO COIN_TRANSACTION (COIN_ID, TRANSACTION_ID) VALUES (?, ?)")) {
+             var ps = connection.prepareStatement(sql)) {
 
             ps.setInt(1, value.getCoin().getId());
             ps.setInt(2, value.getTransaction().getId());
-            ps.executeUpdate();
+            ps.setBigDecimal(3, value.getTransactionPrice());
+            ps.setString(4, value.getCurrency());
 
+            ps.executeUpdate();
         } catch (SQLException e) {
             throw new CrudException("Error saving CoinTransaction", e);
         }
     }
+
 
     @Override
     public void delete(CoinTransaction value) {
@@ -69,28 +75,32 @@ public class JdbcCoinTransactionRepository implements CoinTransactionRepository 
     @Override
     public List<CoinTransaction> getAll() {
         List<CoinTransaction> coinTransactions = new ArrayList<>();
-        List<int[]> ids = new ArrayList<>();
-        String sql = "SELECT COIN_ID, TRANSACTION_ID FROM COIN_TRANSACTION";
+        String sql = """
+        SELECT ct.COIN_ID, ct.TRANSACTION_ID, ct.TRANSACTION_PRICE, ct.CURRENCY
+        FROM COIN_TRANSACTION ct
+    """;
         try (
                 var conn = dataSource.getConnection();
                 var stmt = conn.prepareStatement(sql);
                 var rs = stmt.executeQuery()
         ) {
             while (rs.next()) {
-                ids.add(new int[]{rs.getInt("COIN_ID"), rs.getInt("TRANSACTION_ID")});
+                Coin coin = coinRepository.get(rs.getInt("COIN_ID"));
+                Transaction transaction = transactionRepository.get(rs.getInt("TRANSACTION_ID"));
+
+                JdbcCoinTransaction coinTransaction = new JdbcCoinTransaction();
+                coinTransaction.setCoin(coin);
+                coinTransaction.setTransaction(transaction);
+                coinTransaction.setTransactionPrice(rs.getBigDecimal("TRANSACTION_PRICE"));
+                coinTransaction.setCurrency(rs.getString("CURRENCY"));
+
+                coinTransactions.add(coinTransaction);
             }
         } catch (SQLException e) {
             throw new CrudException("Error getting all CoinTransactions", e);
         }
-        for (var idPair : ids) {
-            Coin coin = coinRepository.get(idPair[0]);
-            Transaction transaction = transactionRepository.get(idPair[1]);
-            CoinTransactionImpl coinTransaction = new CoinTransactionImpl();
-            coinTransaction.setCoin(coin);
-            coinTransaction.setTransaction(transaction);
-            coinTransactions.add(coinTransaction);
-        }
         return coinTransactions;
     }
+
 
 }

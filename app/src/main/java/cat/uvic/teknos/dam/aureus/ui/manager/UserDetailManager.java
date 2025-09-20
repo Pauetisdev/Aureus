@@ -85,8 +85,7 @@ public class UserDetailManager {
                 new Column().header("User").with(d -> {
                     User user = repositoryFactory.getUserRepository().get(d.getId());
                     return (user != null) ? user.getUsername() : "-";
-                }),
-                new Column().header("Phone").with(d -> d.getPhone() != null ? d.getPhone() : "N/A")
+                })
         )));
         System.out.println("----------------------------------------");
     }
