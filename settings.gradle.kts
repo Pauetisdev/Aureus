@@ -11,4 +11,4 @@ plugins {
 }
 
 rootProject.name = "aureus"
-include("app", "utilities", "model", "repositories","jdbc","jpa")
+include("app", "utilities", "model", "repositories","jdbc","jpa", "server", "clients:console")
