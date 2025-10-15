@@ -10,5 +10,12 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "0.9.0"
 }
 
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        mavenCentral()
+    }
+}
+
 rootProject.name = "aureus"
-include("app", "utilities", "model", "repositories","jdbc","jpa", "server", "clients:console")
+include("app", "utilities", "model", "repositories", "jdbc", "jpa", "server", "clients:console")

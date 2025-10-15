@@ -1,5 +1,7 @@
 package cat.uvic.teknos.dam.aureus;
 
+// TODO: Implementar más adelante
+/*
 import cat.uvic.teknos.serialization.UserSerializer;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -32,5 +34,5 @@ public class Client {
 
         socket.close();
     }
-
 }
+*/
