@@ -16,17 +16,27 @@ public class Server {
         this.router = router;
     }
 
+    // Nuevo constructor: para test
+    public Server(int port, RequestRouter router, ServerSocket serverSocket) {
+        this.port = port;
+        this.router = router;
+        this.serverSocket = serverSocket;
+    }
+
     public void start() {
         try {
-            // Puerto 8080 por defecto
-            serverSocket = new ServerSocket(port);
-            System.out.println("Server started and listening on port: " + port);
+            if (serverSocket == null) {
+                serverSocket = new ServerSocket(port);
+                System.out.println("Server started and listening on port: " + port);
+            } else {
+                System.out.println("Server started with provided ServerSocket on port: " + port);
+            }
 
             while (!serverSocket.isClosed()) {
                 // 1. ACEPTAR: Bloquea hasta que un nuevo cliente se conecta.
                 Socket clientSocket = serverSocket.accept();
 
-                System.out.println("🔗 Client connected: " + clientSocket.getInetAddress());
+                System.out.println("Client connected: " + clientSocket.getInetAddress());
 
                 // 2. PROCESAR: El thread principal maneja la solicitud de forma síncrona.
                 handleRequest(clientSocket);

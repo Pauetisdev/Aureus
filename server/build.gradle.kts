@@ -3,10 +3,16 @@
  */
 plugins {
     java
+    application
 }
 
 repositories {
     mavenCentral()
+}
+
+application {
+    // Main class que arranca el servidor
+    mainClass.set("cat.uvic.teknos.dam.aureus.App")
 }
 
 tasks.test {
@@ -20,8 +26,7 @@ dependencies {
     implementation(project(":jpa"))
 
     // Dependencias HTTP y JSON
-    implementation("com.athaydes:rawhttp-core:2.4.0")
-    implementation("com.athaydes:rawhttp-cli:2.4.0")
+    implementation("com.athaydes.rawhttp:rawhttp-core:2.6.0")
     implementation("com.google.code.gson:gson:2.10.1")
 
     // Dependencias de testing

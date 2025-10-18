@@ -3,8 +3,6 @@ package cat.uvic.teknos.dam.aureus.http;
 import cat.uvic.teknos.dam.aureus.controller.CoinController;
 import cat.uvic.teknos.dam.aureus.http.exception.HttpException;
 import cat.uvic.teknos.dam.aureus.service.exception.EntityNotFoundException;
-import com.athaydes.rawhttp.core.*;
-import com.athaydes.rawhttp.core.body.StringBody;
 import com.google.gson.JsonSyntaxException;
 
 import java.io.IOException;
@@ -12,7 +10,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -22,7 +23,6 @@ public class RequestRouter {
     private final List<Route> routes = new ArrayList<>();
 
     private final CoinController coinController;
-    private final RawHttp rawHttp = new RawHttp();
 
     public RequestRouter(CoinController coinController) {
         this.coinController = coinController;
@@ -48,17 +48,17 @@ public class RequestRouter {
                 (req, var) -> handleDeleteCoin(Integer.parseInt(var)));
     }
 
-    private void registerRoute(String method, String pathPattern, Pattern regex, RequestHandlerFunction handler) {
+    private void registerRoute(String method, String pathPattern, Pattern regex, BiFunction<HttpRequest, String, ResponseEntity> handler) {
         routes.add(new Route(method, pathPattern, regex, handler));
     }
 
     // Este método es llamado por Server.java. Su responsabilidad es I/O y manejo de excepciones generales.
     public void handleRequest(InputStream inputStream, OutputStream outputStream) throws IOException {
-        RawHttpResponse<?> response = null;
+        ResponseEntity response = null;
 
         try {
-            RawHttpRequest request = rawHttp.parseRequest(inputStream);
-            System.out.println("Router: " + request.getMethod() + " " + request.getUrl().getPath());
+            HttpRequest request = HttpRequest.parse(inputStream);
+            System.out.println("Router: " + request.getMethod() + " " + request.getPath());
 
             response = route(request);
 
@@ -74,7 +74,8 @@ public class RequestRouter {
         } catch (Exception e) {
             // Cualquier otro error, incluyendo problemas de I/O o excepciones no controladas
             response = createErrorResponse(500, "Internal Server Error", "An unexpected server error occurred: " + e.getMessage());
-            e.printStackTrace();
+            // Reemplazar printStackTrace por un logging simple
+            System.err.println("Unexpected error in router: " + e.getMessage());
         } finally {
             // Escribir la respuesta HTTP de vuelta al stream TCP
             if (response != null) {
@@ -84,16 +85,16 @@ public class RequestRouter {
     }
 
     // Lógica de enrutamiento: busca la coincidencia declarativa
-    private RawHttpResponse<?> route(RawHttpRequest request) throws Exception {
+    public ResponseEntity route(HttpRequest request) {
         String method = request.getMethod();
-        String path = request.getUrl().getPath();
+        String path = request.getPath();
 
         for (Route route : routes) {
             if (route.method().equalsIgnoreCase(method)) {
 
                 // 1. Manejo de rutas exactas (/coins)
                 if (route.regex() == null && route.pathPattern().equals(path)) {
-                    return route.handler().handle(request, null);
+                    return route.handler().apply(request, null);
                 }
 
                 // 2. Manejo de rutas con variables (/coins/{id})
@@ -102,7 +103,7 @@ public class RequestRouter {
                     if (matcher.matches()) {
                         // El valor de la variable es el grupo capturado por la regex (ej: el ID)
                         String pathVariable = matcher.group(1);
-                        return route.handler().handle(request, pathVariable);
+                        return route.handler().apply(request, pathVariable);
                     }
                 }
             }
@@ -114,67 +115,57 @@ public class RequestRouter {
 
     // --- MANEJADORES DE ACCIONES (Delegación al Controller) ---
 
-    private RawHttpResponse<?> handleGetAllCoins() {
+    private ResponseEntity handleGetAllCoins() {
         String jsonBody = coinController.getAllCoins();
         return createJsonResponseEntity(200, "OK", jsonBody);
     }
 
-    private RawHttpResponse<?> handleGetCoinById(int id) {
+    private ResponseEntity handleGetCoinById(int id) {
         // Lanza EntityNotFoundException si la moneda no existe (capturada en handleRequest)
         String jsonBody = coinController.getCoin(id);
         return createJsonResponseEntity(200, "OK", jsonBody);
     }
 
-    private RawHttpResponse<?> handleCreateCoin(RawHttpRequest request) {
+    private ResponseEntity handleCreateCoin(HttpRequest request) {
         String body = getRequestBody(request);
         String jsonBody = coinController.createCoin(body);
         return createJsonResponseEntity(201, "Created", jsonBody);
     }
 
-    private RawHttpResponse<?> handleUpdateCoin(int id, RawHttpRequest request) {
+    private ResponseEntity handleUpdateCoin(int id, HttpRequest request) {
         String body = getRequestBody(request);
-        // Nota: Asumimos que el body contiene la información de la moneda actualizada, incluyendo el ID
-        coinController.updateCoin(body);
+        // Usar el id de la ruta para actualizar (sobrescribe cualquier id en el body)
+        coinController.updateCoin(id, body);
         return createEmptyResponseEntity(200, "OK");
     }
 
-    private RawHttpResponse<?> handleDeleteCoin(int id) {
+    private ResponseEntity handleDeleteCoin(int id) {
         coinController.deleteCoin(id);
         return createEmptyResponseEntity(204, "No Content");
     }
 
     // --- MÉTODOS AUXILIARES HTTP (Creación de Respuesta) ---
 
-    private String getRequestBody(RawHttpRequest request) {
-        // Obtiene el cuerpo de la petición.
-        return request.getBody().map(b -> {
-            try {
-                return b.asString(StandardCharsets.UTF_8);
-            } catch (IOException e) {
-                // Relanzamos como RuntimeException para ser capturada en el try-catch principal
-                throw new RuntimeException("Error reading request body", e);
-            }
-        }).orElse("");
+    private String getRequestBody(HttpRequest request) {
+        return request.getBody();
     }
 
-    private RawHttpResponse<?> createJsonResponseEntity(int status, String reason, String body) {
-        return RawHttp.response(String.format("HTTP/1.1 %d %s", status, reason))
-                .withHeaders(new Headers(
-                        "Content-Type", "application/json",
-                        "Content-Length", String.valueOf(body.getBytes(StandardCharsets.UTF_8).length)
-                ))
-                .withBody(new StringBody(body, "application/json"));
+    private ResponseEntity createJsonResponseEntity(int status, String reason, String body) {
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Content-Type", "application/json");
+        byte[] bodyBytes = body == null ? new byte[0] : body.getBytes(StandardCharsets.UTF_8);
+        headers.put("Content-Length", String.valueOf(bodyBytes.length));
+        return new ResponseEntity(status, reason, headers, bodyBytes);
     }
 
-    private RawHttpResponse<?> createEmptyResponseEntity(int status, String reason) {
-        return RawHttp.response(String.format("HTTP/1.1 %d %s", status, reason))
-                .withHeaders(new Headers("Content-Length", "0"))
-                .withBody(null);
+    private ResponseEntity createEmptyResponseEntity(int status, String reason) {
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Content-Length", "0");
+        return new ResponseEntity(status, reason, headers, null);
     }
 
-    private RawHttpResponse<?> createErrorResponse(int status, String reason, String message) {
+    private ResponseEntity createErrorResponse(int status, String reason, String message) {
         String errorBody = String.format("{\"error\": \"%s\", \"status\": %d}", message, status);
-        // Usamos createJsonResponseEntity para que el cuerpo de error también sea JSON
         return createJsonResponseEntity(status, reason, errorBody);
     }
 }

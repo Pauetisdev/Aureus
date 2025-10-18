@@ -4,6 +4,11 @@
 
 plugins {
     id("buildlogic.java-library-conventions")
+    application
+}
+
+application {
+    mainClass.set("cat.uvic.teknos.dam.aureus.ConsoleApp")
 }
 
 dependencies {
