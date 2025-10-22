@@ -5,7 +5,7 @@ import cat.uvic.teknos.dam.aureus.CoinTransaction;
 import cat.uvic.teknos.dam.aureus.Transaction;
 import cat.uvic.teknos.dam.aureus.impl.CoinImpl;
 import cat.uvic.teknos.dam.aureus.impl.CoinTransactionImpl;
-import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.SingleConnectionDataSource;
+import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.TestSingleConnectionDataSource;
 import org.junit.jupiter.api.*;
 
 import java.math.BigDecimal;
@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class JdbcCoinTransactionRepositoryIT {
 
-    private SingleConnectionDataSource dataSource;
+    private TestSingleConnectionDataSource dataSource;
     private JdbcCoinRepository coinRepository;
     private JdbcTransactionRepository transactionRepository;
     private JdbcCoinTransactionRepository coinTransactionRepository;
@@ -35,11 +35,19 @@ class JdbcCoinTransactionRepositoryIT {
         String password = "";
         var format = "jdbc:%s:%s:%s";
 
-        dataSource = new SingleConnectionDataSource(format, driver, server, database, user, password);
+        dataSource = new TestSingleConnectionDataSource(format, driver, server, database, user, password);
 
         try (var conn = dataSource.getConnection(); Statement stmt = conn.createStatement()) {
+            // Ensure clean state: drop dependents first
+            stmt.execute("DROP TABLE IF EXISTS COIN_TRANSACTION");
+            stmt.execute("DROP TABLE IF EXISTS COIN_COLLECTION");
+            stmt.execute("DROP TABLE IF EXISTS COIN");
+            stmt.execute("DROP TABLE IF EXISTS COLLECTION");
+            stmt.execute("DROP TABLE IF EXISTS \"TRANSACTION\"");
+            stmt.execute("DROP TABLE IF EXISTS \"USER\"");
+
             stmt.execute("""
-                CREATE TABLE "USER" (
+                CREATE TABLE IF NOT EXISTS "USER" (
                     USER_ID INT AUTO_INCREMENT PRIMARY KEY,
                     USERNAME VARCHAR(100) NOT NULL,
                     EMAIL VARCHAR(100) NOT NULL,
@@ -49,7 +57,7 @@ class JdbcCoinTransactionRepositoryIT {
             """);
 
             stmt.execute("""
-                CREATE TABLE COIN (
+                CREATE TABLE IF NOT EXISTS COIN (
                     COIN_ID INT AUTO_INCREMENT PRIMARY KEY,
                     COIN_NAME VARCHAR(100) NOT NULL,
                     COIN_YEAR INT NOT NULL,
@@ -64,7 +72,7 @@ class JdbcCoinTransactionRepositoryIT {
             """);
 
             stmt.execute("""
-                CREATE TABLE TRANSACTION (
+                CREATE TABLE IF NOT EXISTS "TRANSACTION" (
                     TRANSACTION_ID INT AUTO_INCREMENT PRIMARY KEY,
                     TRANSACTION_DATE TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     BUYER_ID INT NOT NULL,
@@ -75,12 +83,14 @@ class JdbcCoinTransactionRepositoryIT {
             """);
 
             stmt.execute("""
-                CREATE TABLE COIN_TRANSACTION (
+                CREATE TABLE IF NOT EXISTS COIN_TRANSACTION (
                     COIN_ID INT,
                     TRANSACTION_ID INT,
+                    TRANSACTION_PRICE DECIMAL(15,4),
+                    CURRENCY VARCHAR(10),
                     PRIMARY KEY (COIN_ID, TRANSACTION_ID),
                     FOREIGN KEY (COIN_ID) REFERENCES COIN(COIN_ID),
-                    FOREIGN KEY (TRANSACTION_ID) REFERENCES TRANSACTION(TRANSACTION_ID)
+                    FOREIGN KEY (TRANSACTION_ID) REFERENCES "TRANSACTION"(TRANSACTION_ID)
                 );
             """);
         }
@@ -131,7 +141,7 @@ class JdbcCoinTransactionRepositoryIT {
             }
 
             try (var stmt = conn.prepareStatement(
-                    "INSERT INTO TRANSACTION (BUYER_ID, SELLER_ID) VALUES (?, ?)",
+                    "INSERT INTO \"TRANSACTION\" (BUYER_ID, SELLER_ID) VALUES (?, ?)",
                     Statement.RETURN_GENERATED_KEYS)) {
                 stmt.setInt(1, buyerId);
                 stmt.setInt(2, sellerId);
@@ -149,7 +159,7 @@ class JdbcCoinTransactionRepositoryIT {
     void clearTables() throws Exception {
         try (var conn = dataSource.getConnection(); Statement stmt = conn.createStatement()) {
             stmt.executeUpdate("DELETE FROM COIN_TRANSACTION");
-            stmt.executeUpdate("DELETE FROM TRANSACTION");
+            stmt.executeUpdate("DELETE FROM \"TRANSACTION\"");
             stmt.executeUpdate("DELETE FROM COIN");
             stmt.executeUpdate("DELETE FROM \"USER\"");
         }

@@ -7,7 +7,7 @@ import cat.uvic.teknos.dam.aureus.impl.UserImpl;
 import cat.uvic.teknos.dam.aureus.repositories.CollectionRepository;
 import cat.uvic.teknos.dam.aureus.repositories.UserRepository;
 import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.DataSource;
-import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.SingleConnectionDataSource;
+import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.TestSingleConnectionDataSource;
 import org.junit.jupiter.api.*;
 
 import java.sql.Connection;
@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class JdbcCollectionRepositoryIT {
 
-    private DataSource dataSource;
+    private TestSingleConnectionDataSource dataSource;
     private CollectionRepository collectionRepository;
     private UserRepository userRepository;
 
@@ -34,18 +34,22 @@ public class JdbcCollectionRepositoryIT {
         String password = "";
         var format = "jdbc:%s:%s:%s";
 
-        dataSource = new SingleConnectionDataSource(format, driver, server, database, user, password);
+        dataSource = new TestSingleConnectionDataSource(format, driver, server, database, user, password);
 
         try (Connection conn = dataSource.getConnection(); Statement st = conn.createStatement()) {
+            // Ensure clean state
+            st.execute("DROP TABLE IF EXISTS COLLECTION");
+            st.execute("DROP TABLE IF EXISTS \"USER\"");
+
             // Tabla USER
-            st.execute("CREATE TABLE \"USER\" (" +
+            st.execute("CREATE TABLE IF NOT EXISTS \"USER\" (" +
                     "USER_ID INT PRIMARY KEY AUTO_INCREMENT, " +
                     "USERNAME VARCHAR(255), " +
                     "EMAIL VARCHAR(255), " +
                     "PASSWORD_HASH VARCHAR(255), " +
                     "JOIN_DATE TIMESTAMP)");
 
-            st.execute("CREATE TABLE COLLECTION (" +
+            st.execute("CREATE TABLE IF NOT EXISTS COLLECTION (" +
                     "COLLECTION_ID INT PRIMARY KEY AUTO_INCREMENT, " +
                     "COLLECTION_NAME VARCHAR(255), " +
                     "DESCRIPTION TEXT, " +

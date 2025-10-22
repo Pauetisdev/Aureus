@@ -3,13 +3,25 @@ package cat.uvic.teknos.dam.aureus.configuration;
 import cat.uvic.teknos.dam.aureus.controller.CoinController;
 import cat.uvic.teknos.dam.aureus.core.Server;
 import cat.uvic.teknos.dam.aureus.http.RequestRouter;
+import cat.uvic.teknos.dam.aureus.model.jpa.repositories.JpaRepositoryFactory;
+import cat.uvic.teknos.dam.aureus.model.jpa.repositories.JpaCoinRepository;
 import cat.uvic.teknos.dam.aureus.service.CoinService;
-import cat.uvic.teknos.dam.aureus.service.CoinServiceImpl;
+import cat.uvic.teknos.dam.aureus.service.JpaCoinService;
 
 public class DependencyInjector {
 
+    private static JpaRepositoryFactory repositoryFactory;
+
+    private static JpaRepositoryFactory getRepositoryFactory() {
+        if (repositoryFactory == null) {
+            repositoryFactory = new JpaRepositoryFactory();
+        }
+        return repositoryFactory;
+    }
+
     public static CoinService provideCoinService() {
-        return new CoinServiceImpl();
+        JpaCoinRepository coinRepository = getRepositoryFactory().getCoinRepository();
+        return new JpaCoinService(coinRepository);
     }
 
     public static CoinController provideCoinController() {

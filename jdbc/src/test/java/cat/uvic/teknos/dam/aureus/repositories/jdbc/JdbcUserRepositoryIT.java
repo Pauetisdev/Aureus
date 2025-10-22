@@ -2,7 +2,7 @@ package cat.uvic.teknos.dam.aureus.repositories.jdbc;
 
 import cat.uvic.teknos.dam.aureus.User;
 import cat.uvic.teknos.dam.aureus.impl.UserImpl;
-import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.SingleConnectionDataSource;
+import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.TestSingleConnectionDataSource;
 import org.junit.jupiter.api.*;
 
 import java.sql.Statement;
@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class JdbcUserRepositoryIT {
 
-    private SingleConnectionDataSource dataSource;
+    private TestSingleConnectionDataSource dataSource;
     private JdbcUserRepository userRepository;
 
     @BeforeAll
@@ -25,7 +25,7 @@ class JdbcUserRepositoryIT {
         String password = "";
         var format = "jdbc:%s:%s:%s";
 
-        dataSource = new SingleConnectionDataSource(format, driver, server, database, user, password);
+        dataSource = new TestSingleConnectionDataSource(format, driver, server, database, user, password);
 
         try (var conn = dataSource.getConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute("""

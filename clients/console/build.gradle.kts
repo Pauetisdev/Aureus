@@ -11,6 +11,10 @@ application {
     mainClass.set("cat.uvic.teknos.dam.aureus.ConsoleApp")
 }
 
+tasks.named<JavaExec>("run") {
+    standardInput = System.`in`
+}
+
 dependencies {
     implementation(project(":model"))
     implementation("com.github.freva:ascii-table:1.8.0")

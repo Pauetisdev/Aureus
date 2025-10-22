@@ -3,7 +3,7 @@ package cat.uvic.teknos.dam.aureus.repositories.jdbc;
 import cat.uvic.teknos.dam.aureus.Coin;
 import cat.uvic.teknos.dam.aureus.impl.CoinImpl;
 import cat.uvic.teknos.dam.aureus.repositories.CoinRepository;
-import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.SingleConnectionDataSource;
+import cat.uvic.teknos.dam.aureus.repositories.jdbc.datasources.TestSingleConnectionDataSource;
 
 import org.junit.jupiter.api.*;
 
@@ -20,7 +20,7 @@ class JdbcCoinRepositoryIT {
 
     private static CoinRepository repository;
     private static Connection connection;
-    private static SingleConnectionDataSource dataSource;
+    private static TestSingleConnectionDataSource dataSource;
 
     @BeforeAll
     static void setupDatabase() throws SQLException {
@@ -32,7 +32,7 @@ class JdbcCoinRepositoryIT {
         String password = "";
         var format = "jdbc:%s:%s:%s";
 
-        dataSource = new SingleConnectionDataSource(format, driver, server, database, user, password);
+        dataSource = new TestSingleConnectionDataSource(format, driver, server, database, user, password);
 
         connection = dataSource.getConnection();
         repository = new JdbcCoinRepository(dataSource);

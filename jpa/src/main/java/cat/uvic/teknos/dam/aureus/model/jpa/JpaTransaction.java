@@ -10,7 +10,7 @@ import java.util.Set;
 
 
 @Entity
-@Table(name = "TRANSACTIONS") // Escapado con acentos graves
+@Table(name = "TRANSACTION")
 @Data
 @EqualsAndHashCode(exclude = {"coinTransactions", "buyer", "seller"})
 @ToString(exclude = {"coinTransactions", "buyer", "seller"})

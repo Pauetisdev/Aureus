@@ -19,4 +19,6 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    // Ejecutar también tests de integración que terminan en *IT
+    include("**/*IT.class", "**/*Test.class", "**/*Tests.class", "**/*TestCase.class")
 }

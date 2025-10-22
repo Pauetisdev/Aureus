@@ -40,9 +40,9 @@ public class JdbcTransactionRepository implements TransactionRepository {
 
         String sql;
         if (transaction.getId() == null) {
-            sql = "INSERT INTO TRANSACTION (TRANSACTION_DATE, BUYER_ID, SELLER_ID) VALUES (?, ?, ?)";
+            sql = "INSERT INTO \"TRANSACTION\" (TRANSACTION_DATE, BUYER_ID, SELLER_ID) VALUES (?, ?, ?)";
         } else {
-            sql = "UPDATE TRANSACTION SET TRANSACTION_DATE = ?, BUYER_ID = ?, SELLER_ID = ? WHERE TRANSACTION_ID = ?";
+            sql = "UPDATE \"TRANSACTION\" SET TRANSACTION_DATE = ?, BUYER_ID = ?, SELLER_ID = ? WHERE TRANSACTION_ID = ?";
         }
 
         try (var connection = dataSource.getConnection();
@@ -80,7 +80,7 @@ public class JdbcTransactionRepository implements TransactionRepository {
             throw new InvalidDataException("Transaction or Transaction ID cannot be null");
         }
 
-        String sql = "DELETE FROM TRANSACTION WHERE TRANSACTION_ID = ?";
+        String sql = "DELETE FROM \"TRANSACTION\" WHERE TRANSACTION_ID = ?";
         try (var connection = dataSource.getConnection();
              var ps = connection.prepareStatement(sql)) {
 
@@ -97,7 +97,7 @@ public class JdbcTransactionRepository implements TransactionRepository {
 
     @Override
     public Transaction get(Integer id) {
-        String sql = "SELECT * FROM TRANSACTION WHERE TRANSACTION_ID = ?";
+        String sql = "SELECT * FROM \"TRANSACTION\" WHERE TRANSACTION_ID = ?";
         try (var conn = dataSource.getConnection();
              var stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, id);
@@ -122,9 +122,9 @@ public class JdbcTransactionRepository implements TransactionRepository {
         String sql = "SELECT t.*, " +
                 "b.USER_ID as BUYER_ID, b.USERNAME as BUYER_USERNAME, b.EMAIL as BUYER_EMAIL, " +
                 "s.USER_ID as SELLER_ID, s.USERNAME as SELLER_USERNAME, s.EMAIL as SELLER_EMAIL " +
-                "FROM TRANSACTION t " +
-                "JOIN USER b ON t.BUYER_ID = b.USER_ID " +
-                "JOIN USER s ON t.SELLER_ID = s.USER_ID";
+                "FROM \"TRANSACTION\" t " +
+                "JOIN \"USER\" b ON t.BUYER_ID = b.USER_ID " +
+                "JOIN \"USER\" s ON t.SELLER_ID = s.USER_ID";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement st = conn.prepareStatement(sql);
@@ -169,7 +169,7 @@ public class JdbcTransactionRepository implements TransactionRepository {
         }
 
         List<Transaction> transactions = new ArrayList<>();
-        String sql = "SELECT * FROM TRANSACTION WHERE TRANSACTION_DATE BETWEEN ? AND ?";
+        String sql = "SELECT * FROM \"TRANSACTION\" WHERE TRANSACTION_DATE BETWEEN ? AND ?";
 
         try (var connection = dataSource.getConnection();
              var ps = connection.prepareStatement(sql)) {

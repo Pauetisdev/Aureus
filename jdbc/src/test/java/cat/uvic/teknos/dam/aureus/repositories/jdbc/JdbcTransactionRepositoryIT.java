@@ -36,6 +36,15 @@ public class JdbcTransactionRepositoryIT {
         );
 
         try (Connection conn = dataSource.getConnection(); Statement st = conn.createStatement()) {
+            // Ensure clean state: drop dependent tables first to avoid FK constraint errors
+            st.execute("DROP TABLE IF EXISTS COIN_TRANSACTION");
+            st.execute("DROP TABLE IF EXISTS COIN_COLLECTION");
+            st.execute("DROP TABLE IF EXISTS COIN");
+            st.execute("DROP TABLE IF EXISTS COLLECTION");
+            st.execute("DROP TABLE IF EXISTS USER_DETAIL");
+            st.execute("DROP TABLE IF EXISTS \"TRANSACTION\"");
+            st.execute("DROP TABLE IF EXISTS \"USER\"");
+
             st.execute("CREATE TABLE \"USER\" (" +
                     "USER_ID INT PRIMARY KEY AUTO_INCREMENT, " +
                     "USERNAME VARCHAR(255), " +
