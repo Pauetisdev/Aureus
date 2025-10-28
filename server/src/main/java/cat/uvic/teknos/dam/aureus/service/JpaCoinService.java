@@ -4,15 +4,19 @@ import cat.uvic.teknos.dam.aureus.impl.CoinImpl;
 import cat.uvic.teknos.dam.aureus.model.jpa.JpaCoin;
 import cat.uvic.teknos.dam.aureus.model.jpa.repositories.JpaCoinRepository;
 import cat.uvic.teknos.dam.aureus.service.exception.EntityNotFoundException;
+import cat.uvic.teknos.dam.aureus.http.exception.HttpException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class JpaCoinService implements CoinService {
     private final JpaCoinRepository coinRepository;
+    private final cat.uvic.teknos.dam.aureus.model.jpa.repositories.JpaCollectionRepository collectionRepository;
 
-    public JpaCoinService(JpaCoinRepository coinRepository) {
+    public JpaCoinService(JpaCoinRepository coinRepository, cat.uvic.teknos.dam.aureus.model.jpa.repositories.JpaCollectionRepository collectionRepository) {
         this.coinRepository = coinRepository;
+        this.collectionRepository = collectionRepository;
     }
 
     @Override
@@ -86,7 +90,60 @@ public class JpaCoinService implements CoinService {
         jpaCoin.setEstimatedValue(coin.getEstimatedValue());
         jpaCoin.setOriginCountry(coin.getOriginCountry());
         jpaCoin.setHistoricalSignificance(coin.getHistoricalSignificance());
+
+        // Map collection if provided (extract id and load JpaCollection)
+        Integer collectionId = extractCollectionId(coin.getCollection());
+        if (collectionId != null) {
+            try {
+                var coll = collectionRepository.get(collectionId);
+                // set to jpaCoin
+                jpaCoin.setCollection(coll);
+            } catch (cat.uvic.teknos.dam.aureus.service.exception.EntityNotFoundException e) {
+                // explicit bad request when collection doesn't exist
+                throw new HttpException(400, "Bad Request", "collectionId " + collectionId + " not found");
+            } catch (Exception ignored) {
+                // leave null, repository will throw on save if DB requires it
+            }
+        }
         return jpaCoin;
     }
-}
 
+    private Integer extractCollectionId(cat.uvic.teknos.dam.aureus.CoinCollection collection) {
+        if (collection == null) return null;
+        try {
+            // If it's a Map-like implementation
+            if (collection instanceof Map) {
+                Map<?,?> m = (Map<?,?>) collection;
+                Object v = m.get("id");
+                if (v instanceof Number) return ((Number) v).intValue();
+                v = m.get("collectionId");
+                if (v instanceof Number) return ((Number) v).intValue();
+            }
+            // try getter getId()
+            try {
+                java.lang.reflect.Method m = collection.getClass().getMethod("getId");
+                Object val = m.invoke(collection);
+                if (val instanceof Number) return ((Number) val).intValue();
+            } catch (NoSuchMethodException ignored) {}
+
+            // try getter getCollectionId()
+            try {
+                java.lang.reflect.Method m = collection.getClass().getMethod("getCollectionId");
+                Object val = m.invoke(collection);
+                if (val instanceof Number) return ((Number) val).intValue();
+            } catch (NoSuchMethodException ignored) {}
+
+            // try fields named id or collectionId
+            for (java.lang.reflect.Field f : collection.getClass().getDeclaredFields()) {
+                f.setAccessible(true);
+                if ("id".equals(f.getName()) || "collectionId".equals(f.getName())) {
+                    Object val = f.get(collection);
+                    if (val instanceof Number) return ((Number) val).intValue();
+                }
+            }
+        } catch (Throwable t) {
+            // swallow and return null
+        }
+        return null;
+    }
+}

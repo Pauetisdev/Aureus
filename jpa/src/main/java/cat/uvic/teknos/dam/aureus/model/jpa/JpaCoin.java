@@ -26,7 +26,7 @@ public class JpaCoin {
     @Column(name = "COIN_YEAR")
     private Integer coinYear;
 
-    @Column(name = "COIN_MATERIAL")
+    @Column(name = "COIN_MATERIAL", nullable = false)
     private String coinMaterial;
 
     @Column(name = "COIN_WEIGHT", precision = 10, scale = 2)
@@ -35,10 +35,10 @@ public class JpaCoin {
     @Column(name = "COIN_DIAMETER", precision = 10, scale = 2)
     private BigDecimal coinDiameter;
 
-    @Column(name = "ESTIMATED_VALUE", precision = 15, scale = 2)
+    @Column(name = "ESTIMATED_VALUE", precision = 15, scale = 2, nullable = false)
     private BigDecimal estimatedValue;
 
-    @Column(name = "ORIGIN_COUNTRY")
+    @Column(name = "ORIGIN_COUNTRY", nullable = false)
     private String originCountry;
 
     @Column(name = "HISTORICAL_SIGNIFICANCE", length = 1000)
@@ -46,7 +46,7 @@ public class JpaCoin {
 
     // RELATION WITH COLLECTION (Many-to-One)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "COLLECTION_ID")
+    @JoinColumn(name = "COLLECTION_ID", nullable = false)
     private JpaCollection collection;
 
     // RELATION WITH COIN_TRANSACTIONS (One-to-Many)

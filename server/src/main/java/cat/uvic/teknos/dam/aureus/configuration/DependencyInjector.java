@@ -1,12 +1,14 @@
 package cat.uvic.teknos.dam.aureus.configuration;
 
 import cat.uvic.teknos.dam.aureus.controller.CoinController;
+import cat.uvic.teknos.dam.aureus.controller.CollectionController;
 import cat.uvic.teknos.dam.aureus.core.Server;
 import cat.uvic.teknos.dam.aureus.http.RequestRouter;
 import cat.uvic.teknos.dam.aureus.model.jpa.repositories.JpaRepositoryFactory;
 import cat.uvic.teknos.dam.aureus.model.jpa.repositories.JpaCoinRepository;
 import cat.uvic.teknos.dam.aureus.service.CoinService;
 import cat.uvic.teknos.dam.aureus.service.JpaCoinService;
+import cat.uvic.teknos.dam.aureus.service.CollectionServiceImpl;
 
 public class DependencyInjector {
 
@@ -21,7 +23,8 @@ public class DependencyInjector {
 
     public static CoinService provideCoinService() {
         JpaCoinRepository coinRepository = getRepositoryFactory().getCoinRepository();
-        return new JpaCoinService(coinRepository);
+        var collRepo = getRepositoryFactory().getCollectionRepository();
+        return new JpaCoinService(coinRepository, collRepo);
     }
 
     public static CoinController provideCoinController() {
@@ -32,12 +35,16 @@ public class DependencyInjector {
         return new CoinController(coinService);
     }
 
+    public static CollectionController provideCollectionController() {
+        return new CollectionController(getRepositoryFactory().getCollectionRepository());
+    }
+
     public static RequestRouter provideRequestRouter() {
-        return new RequestRouter(provideCoinController());
+        return new RequestRouter(provideCoinController(), provideCollectionController());
     }
 
     public static RequestRouter provideRequestRouter(CoinController coinController) {
-        return new RequestRouter(coinController);
+        return new RequestRouter(coinController, provideCollectionController());
     }
 
     public static Server provideServer(int port) {

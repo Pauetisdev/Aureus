@@ -2,6 +2,7 @@ package cat.uvic.teknos.dam.aureus.core;
 
 import cat.uvic.teknos.dam.aureus.http.RequestRouter; // Importa el placeholder/clase real
 import java.io.IOException;
+import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -41,6 +42,8 @@ public class Server {
                 // 2. PROCESAR: El thread principal maneja la solicitud de forma síncrona.
                 handleRequest(clientSocket);
             }
+        } catch (BindException e) {
+            System.err.println("Port " + port + " is already in use. " + e.getMessage());
         } catch (IOException e) {
             // Maneja el error que ocurre típicamente al cerrar el ServerSocket
             if (serverSocket != null && serverSocket.isClosed()) {

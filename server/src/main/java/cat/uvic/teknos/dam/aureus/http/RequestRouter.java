@@ -1,6 +1,7 @@
 package cat.uvic.teknos.dam.aureus.http;
 
 import cat.uvic.teknos.dam.aureus.controller.CoinController;
+import cat.uvic.teknos.dam.aureus.controller.CollectionController;
 import cat.uvic.teknos.dam.aureus.http.exception.HttpException;
 import cat.uvic.teknos.dam.aureus.service.exception.EntityNotFoundException;
 import com.google.gson.JsonSyntaxException;
@@ -23,16 +24,27 @@ public class RequestRouter {
     private final List<Route> routes = new ArrayList<>();
 
     private final CoinController coinController;
+    private final CollectionController collectionController;
+
+    public RequestRouter(CoinController coinController, CollectionController collectionController) {
+        this.coinController = coinController;
+        this.collectionController = collectionController;
+        registerRoutes();
+    }
 
     public RequestRouter(CoinController coinController) {
-        this.coinController = coinController;
-        registerRoutes();
+        this(coinController, null);
     }
 
     private void registerRoutes() {
         // Rutas estáticas (/coins)
         registerRoute("GET", "/coins", null, (req, var) -> handleGetAllCoins());
         registerRoute("POST", "/coins", null, (req, var) -> handleCreateCoin(req));
+
+        // Rutas para collections (si hay controller)
+        if (collectionController != null) {
+            registerRoute("GET", "/collections", null, (req, var) -> handleGetAllCollections());
+        }
 
         // Rutas dinámicas (/coins/{id})
         // Patrón para capturar el ID (\\d+) al final de la ruta
@@ -76,6 +88,7 @@ public class RequestRouter {
             response = createErrorResponse(500, "Internal Server Error", "An unexpected server error occurred: " + e.getMessage());
             // Reemplazar printStackTrace por un logging simple
             System.err.println("Unexpected error in router: " + e.getMessage());
+            e.printStackTrace(System.err);
         } finally {
             // Escribir la respuesta HTTP de vuelta al stream TCP
             if (response != null) {
@@ -117,6 +130,11 @@ public class RequestRouter {
 
     private ResponseEntity handleGetAllCoins() {
         String jsonBody = coinController.getAllCoins();
+        return createJsonResponseEntity(200, "OK", jsonBody);
+    }
+
+    private ResponseEntity handleGetAllCollections() {
+        String jsonBody = collectionController.getAllCollections();
         return createJsonResponseEntity(200, "OK", jsonBody);
     }
 

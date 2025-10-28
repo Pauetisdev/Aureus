@@ -1,12 +1,14 @@
 package cat.uvic.teknos.dam.aureus.controller;
 
 import cat.uvic.teknos.dam.aureus.impl.CoinImpl;
+import cat.uvic.teknos.dam.aureus.impl.CoinCollectionImpl;
 import cat.uvic.teknos.dam.aureus.service.CoinService;
 import com.google.gson.Gson;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -42,6 +44,15 @@ class CoinControllerTest {
         CoinImpl toCreate = new CoinImpl();
         toCreate.setCoinName("New");
         toCreate.setCoinYear(10);
+        toCreate.setCoinMaterial("Gold");
+        toCreate.setCoinWeight(new BigDecimal("5.0"));
+        toCreate.setCoinDiameter(new BigDecimal("20.0"));
+        toCreate.setEstimatedValue(new BigDecimal("100.0"));
+        toCreate.setOriginCountry("Rome");
+        toCreate.setHistoricalSignificance("Ancient coin");
+        CoinCollectionImpl coll = new CoinCollectionImpl();
+        coll.setId(2);
+        toCreate.setCollection(coll);
 
         CoinImpl created = new CoinImpl();
         created.setId(5);
@@ -75,4 +86,3 @@ class CoinControllerTest {
         verify(service).delete(10);
     }
 }
-

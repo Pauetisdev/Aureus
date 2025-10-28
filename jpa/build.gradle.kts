@@ -20,5 +20,9 @@ dependencies {
     compileOnly("org.projectlombok:lombok:1.18.30")
     annotationProcessor("org.projectlombok:lombok:1.18.30")
 
+    // H2 para tests
     testImplementation("com.h2database:h2:2.3.232")
+
+    // driver org.h2.Driver esté disponible
+    runtimeOnly("com.h2database:h2:2.3.232")
 }

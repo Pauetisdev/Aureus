@@ -17,6 +17,9 @@ public class JpaRepositoryFactory {
         return new JpaCoinRepository(entityManager);
     }
 
+    public JpaCollectionRepository getCollectionRepository() {
+        return new JpaCollectionRepository(entityManager);
+    }
 
     public void close() {
         if (entityManager != null && entityManager.isOpen()) {
@@ -27,4 +30,3 @@ public class JpaRepositoryFactory {
         }
     }
 }
-
