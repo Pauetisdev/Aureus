@@ -164,12 +164,28 @@ public class CoinController {
             } catch (Throwable t) {
                 // ignore
             }
-            CoinImpl created = coinService.create(coin, preExtractedCollectionId);
-            return gson.toJson(created);
+            System.out.println("CoinController.createCoin: coinService implementation = " + coinService.getClass().getName());
+            System.out.println("CoinController.createCoin: coin.getId() before create = " + coin.getId());
+            try {
+                CoinImpl created = coinService.create(coin, preExtractedCollectionId);
+                return gson.toJson(created);
+            } catch (Throwable t) {
+                System.err.println("CoinController.createCoin: exception while creating coin: " + t.getMessage());
+                t.printStackTrace(System.err);
+                throw t;
+            }
         }
 
-        CoinImpl created = coinService.create(coin);
-        return gson.toJson(created);
+        System.out.println("CoinController.createCoin: coinService implementation = " + coinService.getClass().getName());
+        System.out.println("CoinController.createCoin: coin.getId() before create = " + coin.getId());
+        try {
+            CoinImpl created = coinService.create(coin);
+            return gson.toJson(created);
+        } catch (Throwable t) {
+            System.err.println("CoinController.createCoin: exception while creating coin: " + t.getMessage());
+            t.printStackTrace(System.err);
+            throw t;
+        }
     }
 
     // Nueva sobrecarga: acepta un collectionId ya extraído desde el JSON y lo considera válido
@@ -202,9 +218,64 @@ public class CoinController {
 
     // Nuevo: Actualiza usando el id de la ruta (sobrescribe cualquier id en el body)
     public void updateCoin(int id, String body) {
+        // Normalize collection forms: accept collectionId in root or primitive collection
+        try {
+            com.google.gson.JsonElement parsed = com.google.gson.JsonParser.parseString(body);
+            if (parsed.isJsonObject()) {
+                com.google.gson.JsonObject obj = parsed.getAsJsonObject();
+                boolean modified = false;
+                if (obj.has("collectionId") && !obj.get("collectionId").isJsonNull()) {
+                    com.google.gson.JsonElement cid = obj.get("collectionId");
+                    com.google.gson.JsonObject collObj = new com.google.gson.JsonObject();
+                    collObj.add("id", cid);
+                    obj.add("collection", collObj);
+                    obj.remove("collectionId");
+                    modified = true;
+                } else if (obj.has("collection") && !obj.get("collection").isJsonNull()) {
+                    com.google.gson.JsonElement collElem = obj.get("collection");
+                    // Si collection es primitivo (número o string con número), convertir a objeto {id:...}
+                    if (collElem.isJsonPrimitive()) {
+                        com.google.gson.JsonPrimitive prim = collElem.getAsJsonPrimitive();
+                        try {
+                            com.google.gson.JsonObject collObj = new com.google.gson.JsonObject();
+                            if (prim.isNumber()) collObj.addProperty("id", prim.getAsInt());
+                            else if (prim.isString()) collObj.addProperty("id", Integer.parseInt(prim.getAsString()));
+                            obj.add("collection", collObj);
+                            modified = true;
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
+                if (modified) body = obj.toString();
+            }
+        } catch (Exception ignored) {}
+
         // usar parsingGson para poder instanciar la implementación de CoinCollection si viene en el body
+        System.out.println("CoinController.updateCoin: body = " + body);
         CoinImpl coin = parsingGson.fromJson(body, CoinImpl.class);
         coin.setId(id);
+        System.out.println("CoinController.updateCoin: deserialized coin.collection = " + coin.getCollection());
+        // If collectionId could be parsed from the raw JSON body, ensure coin.collection carries that id
+        try {
+            com.google.gson.JsonElement parsedForLog = com.google.gson.JsonParser.parseString(body);
+            if (parsedForLog.isJsonObject()) {
+                Integer cid = extractCollectionIdFromJsonObject(parsedForLog.getAsJsonObject());
+                if (cid != null) {
+                    try {
+                        if (coin.getCollection() == null) {
+                            cat.uvic.teknos.dam.aureus.impl.CoinCollectionImpl ci = new cat.uvic.teknos.dam.aureus.impl.CoinCollectionImpl();
+                            ci.setId(cid);
+                            coin.setCollection(ci);
+                        } else {
+                            try {
+                                java.lang.reflect.Method m = coin.getCollection().getClass().getMethod("setId", Integer.class);
+                                m.invoke(coin.getCollection(), cid);
+                            } catch (Throwable ignored) {}
+                        }
+                        System.out.println("CoinController.updateCoin: enforced collectionId = " + cid);
+                    } catch (Throwable ignored) {}
+                }
+            }
+        } catch (Exception ignored) {}
         coinService.update(coin);
     }
 
