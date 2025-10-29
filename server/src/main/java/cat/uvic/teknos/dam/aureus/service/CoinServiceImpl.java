@@ -11,6 +11,13 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * In-memory implementation of {@link CoinService} used for testing and
+ * non-persistent scenarios.
+ *
+ * <p>This simple implementation stores coins in a concurrent map and
+ * auto-increments ids using an {@link AtomicInteger}.</p>
+ */
 public class CoinServiceImpl implements CoinService {
 
     private final Map<Integer, CoinImpl> store = new ConcurrentHashMap<>();
@@ -31,11 +38,17 @@ public class CoinServiceImpl implements CoinService {
         store.put(c2.getId(), c2);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<CoinImpl> findAll() {
         return new ArrayList<>(store.values());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public CoinImpl findById(int id) {
         CoinImpl c = store.get(id);
@@ -43,6 +56,9 @@ public class CoinServiceImpl implements CoinService {
         return c;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public CoinImpl create(CoinImpl coin) {
         if (coin.getId() == null) {
@@ -54,6 +70,9 @@ public class CoinServiceImpl implements CoinService {
         return coin;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public CoinImpl create(CoinImpl coin, Integer collectionId) {
         if (collectionId != null) {
@@ -75,6 +94,9 @@ public class CoinServiceImpl implements CoinService {
         return create(coin);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void update(CoinImpl coin) {
         if (coin.getId() == null) throw new IllegalArgumentException("Coin id is required for update");
@@ -82,6 +104,9 @@ public class CoinServiceImpl implements CoinService {
         store.put(coin.getId(), coin);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void delete(int id) {
         if (store.remove(id) == null) throw new EntityNotFoundException("Coin not found with id " + id);

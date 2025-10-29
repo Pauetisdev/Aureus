@@ -6,6 +6,13 @@ import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+/**
+ * Small single-threaded HTTP server used by the project for testing and demo.
+ *
+ * <p>The server accepts TCP connections, delegates request handling to the
+ * provided {@link RequestRouter} and writes responses back to the client.
+ * It is intentionally simple (single-threaded accept + synchronous handling)</p>
+ */
 public class Server {
 
     private final int port;
@@ -24,6 +31,10 @@ public class Server {
         this.serverSocket = serverSocket;
     }
 
+    /**
+     * Start accepting incoming connections and process them sequentially.
+     * The method blocks until the server is shut down or an unrecoverable error occurs.
+     */
     public void start() {
         try {
             if (serverSocket == null) {
@@ -76,6 +87,9 @@ public class Server {
         }
     }
 
+    /**
+     * Shutdown the server and close the server socket if open.
+     */
     public void shutdown() {
         try {
             if (serverSocket != null && !serverSocket.isClosed()) {

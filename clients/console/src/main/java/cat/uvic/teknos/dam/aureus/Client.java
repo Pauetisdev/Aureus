@@ -9,11 +9,28 @@ import java.util.Scanner;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+/**
+ * Console client for the AUREUS coin management server.
+ *
+ * <p>This class implements a simple interactive console UI that sends
+ * HTTP-like requests to the embedded server using a raw TCP socket.
+ * It is intentionally lightweight and expects the server to respond with
+ * a minimal HTTP/1.1-style status line, headers and a JSON body.</p>
+ *
+ * <p>Important responsibilities:
+ * <ul>
+ *   <li>Build and send HTTP requests over a Socket.</li>
+ *   <li>Read and parse the status line, headers and body (Content-Length).</li>
+ *   <li>Render JSON responses as ASCII tables for a pleasant CLI UX.</li>
+ *   <li>Cache collection names to avoid repeated requests when listing coins.</li>
+ * </ul>
+ * </p>
+ */
 public class Client {
     private final String host;
     private final int port;
     private final ObjectMapper mapper = new ObjectMapper();
-    // Cache to avoid repeated requests for collection names
+    // Cache to avoid repeated requests for collection names (id -> name)
     private final Map<Integer, String> collectionNameCache = new HashMap<>();
 
     public Client(String host, int port) {
@@ -21,6 +38,12 @@ public class Client {
         this.port = port;
     }
 
+    /**
+     * Start the interactive console client.
+     *
+     * <p>Reads commands from standard input and maps them to HTTP actions
+     * executed against the configured server.</p>
+     */
     public void run() {
         Scanner sc = new Scanner(System.in);
 
@@ -207,6 +230,12 @@ public class Client {
         printFormattedResponse(response);
     }
 
+    /**
+     * Prompt the user to select a collection id.
+     *
+     * <p>This method fetches the reduced collection list from the server
+     * (id + name) and validates the user's choice against the displayed ids.</p>
+     */
     private Integer promptForCollectionId(Scanner sc) throws IOException {
         System.out.println("\nAvailable collections:");
         List<Integer> availableIds = new ArrayList<>();
@@ -446,6 +475,14 @@ public class Client {
         return s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
+    /**
+     * Send a minimal HTTP/1.1 request over a socket and return the raw response.
+     *
+     * <p>This method builds the request line and headers, writes the body
+     * (if present) and reads the response status line, headers and body based
+     * on Content-Length. It uses a blocking socket and a BufferedReader for
+     * simplicity.</p>
+     */
     private Response sendRequest(String method, String path, String body) throws IOException {
         try (Socket socket = new Socket(host, port)) {
             OutputStream out = socket.getOutputStream();
@@ -472,6 +509,7 @@ public class Client {
             out.write(reqOut.toByteArray());
             out.flush();
 
+            // Read response: status line, headers, then body based on Content-Length
             BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
             String statusLine = reader.readLine();
             if (statusLine == null) throw new IOException("No response from server");
@@ -499,6 +537,12 @@ public class Client {
         }
     }
 
+    /**
+     * Pretty-print the server response: try to parse JSON and render tables.
+     *
+     * <p>This method supports both JSON arrays and objects. For arrays it
+     * renders a table where columns are the union of keys in all objects.</p>
+     */
     private void printFormattedResponse(Response response) {
         System.out.println(response.statusLine);
         String body = response.body == null ? "" : response.body.trim();
@@ -612,7 +656,14 @@ public class Client {
         }
     }
 
-    // Special formatting for collection column: if server provided only an id, try to fetch the collection name
+    /**
+     * Special formatting for the collection column.
+     *
+     * <p>If the server returned a collection object (map) prefer showing
+     * "id: name" if available. If only an id is present, this method will
+     * attempt to fetch the collection name from the server (with caching)
+     * to display a user-friendly label.</p>
+     */
     private String formatCollectionValue(Object raw) {
         if (raw == null) return "";
         try {
@@ -649,6 +700,12 @@ public class Client {
         }
     }
 
+    /**
+     * Fetch collection name for display (uses cache to avoid repeated requests).
+     *
+     * <p>If the server does not return a name or an error occurs, the method
+     * returns the id as a string. The result is cached (empty string means unknown).</p>
+     */
     private String fetchCollectionDisplay(int id) {
         // Check cache first
         if (collectionNameCache.containsKey(id)) {
@@ -669,7 +726,7 @@ public class Client {
             collectionNameCache.put(id, sname);
             return sname.isEmpty() ? String.valueOf(id) : (id + ": " + sname);
         } catch (Exception e) {
-            // On error, return id alone
+            // On error, return id alone and cache empty result to avoid future lookups
             collectionNameCache.put(id, "");
             return String.valueOf(id);
         }

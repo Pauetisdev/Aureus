@@ -7,6 +7,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Represents a parsed HTTP request with method, path, headers and body.
+ *
+ * <p>The {@link #parse(InputStream)} method parses a raw HTTP request from
+ * an InputStream and returns a populated {@code HttpRequest} instance.</p>
+ */
 public class HttpRequest {
     private final String method;
     private final String path;
@@ -25,6 +31,16 @@ public class HttpRequest {
     public Map<String,String> getHeaders() { return headers; }
     public String getBody() { return body; }
 
+    /**
+     * Parse a raw HTTP request from the provided InputStream.
+     *
+     * <p>The method reads headers until the CRLFCRLF sequence and then
+     * reads the body according to the Content-Length header (if present).</p>
+     *
+     * @param input input stream containing the raw HTTP request
+     * @return parsed {@link HttpRequest}
+     * @throws IOException on I/O or protocol parsing errors
+     */
     public static HttpRequest parse(InputStream input) throws IOException {
         // Read bytes until the sequence CRLF CRLF is found, which marks the end of headers
         ByteArrayOutputStream headerBuffer = new ByteArrayOutputStream();

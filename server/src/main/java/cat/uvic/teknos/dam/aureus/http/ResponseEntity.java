@@ -6,6 +6,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * Represents an HTTP response including status, reason, headers and body.
+ *
+ * <p>Instances can write themselves to an {@link java.io.OutputStream}
+ * using the {@link #writeTo(OutputStream)} method following simple HTTP/1.1
+ * formatting rules used by the embedded server.</p>
+ */
 public class ResponseEntity {
     private final int status;
     private final String reason;
@@ -24,6 +31,12 @@ public class ResponseEntity {
     public Map<String,String> getHeaders() { return headers; }
     public byte[] getBody() { return body; }
 
+    /**
+     * Write the HTTP response to the provided OutputStream.
+     *
+     * @param out output stream that receives the HTTP response bytes
+     * @throws IOException if an I/O error occurs while writing
+     */
     public void writeTo(OutputStream out) throws IOException {
         String statusLine = String.format("HTTP/1.1 %d %s\r\n", status, reason);
         out.write(statusLine.getBytes(StandardCharsets.UTF_8));
@@ -40,4 +53,3 @@ public class ResponseEntity {
         out.flush();
     }
 }
-

@@ -10,6 +10,14 @@ import com.google.gson.JsonParser;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Controller handling collection-related HTTP operations exposed to clients.
+ *
+ * <p>This controller exposes simple operations to list and create collections.
+ * Responses are returned as JSON strings. The controller intentionally
+ * returns a reduced representation for list operations (id and collectionName)
+ * to avoid leaking unnecessary internal fields.</p>
+ */
 public class CollectionController {
     private final JpaCollectionRepository service;
     private final Gson gson = new Gson();
@@ -18,6 +26,12 @@ public class CollectionController {
         this.service = service;
     }
 
+    /**
+     * Return all collections as a JSON array of reduced objects containing
+     * only the collection id and name.
+     *
+     * @return JSON array of collections (each item has "id" and "collectionName")
+     */
     public String getAllCollections() {
         List<JpaCollection> list = service.getAll();
         // Return only id and collectionName to the client
@@ -32,7 +46,15 @@ public class CollectionController {
         return gson.toJson(reduced);
     }
 
-    // Nuevo: crear una colección a partir de JSON { "collectionName": "name", "description": "..." }
+    /**
+     * Create a new collection from the provided JSON body.
+     *
+     * Expected body: { "collectionName": "name", "description": "..." }
+     *
+     * @param body JSON request body
+     * @return JSON object containing the created collection's id, name and description
+     * @throws IllegalArgumentException if required field is missing or invalid
+     */
     public String createCollection(String body) {
         JsonElement parsed = JsonParser.parseString(body);
         if (!parsed.isJsonObject()) {

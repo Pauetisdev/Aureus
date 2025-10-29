@@ -1,5 +1,21 @@
 package cat.uvic.teknos.dam.aureus;
 
+/**
+ * Entry point for the console client application.
+ *
+ * Responsibilities:
+ * - Read host and port from environment variables or command-line arguments.
+ * - Instantiate the client and start its main loop.
+ *
+ * Environment variables:
+ * - AUREUS_HOST (default: "localhost")
+ * - AUREUS_PORT (default: 5000)
+ *
+ * Command-line args:
+ * - args[0]: host (overrides AUREUS_HOST)
+ * - args[1]: port (overrides AUREUS_PORT)
+ */
+
 public class ConsoleApp {
     public static void main(String[] args) {
         String host = System.getenv().getOrDefault("AUREUS_HOST", "localhost");

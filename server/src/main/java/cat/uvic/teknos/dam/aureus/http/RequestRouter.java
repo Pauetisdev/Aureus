@@ -18,6 +18,15 @@ import java.util.function.BiFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Simple HTTP request router responsible for mapping incoming HTTP requests
+ * (method + path) to handler functions that delegate to controller classes.
+ *
+ * <p>The router is intentionally lightweight: it parses the request using
+ * {@link HttpRequest#parse} and maps routes registered at construction time
+ * to small handler methods that call into {@code CoinController} and
+ * {@code CollectionController}.</p>
+ */
 public class RequestRouter {
 
     // Lista de rutas registradas para el mapeo declarativo
@@ -65,6 +74,13 @@ public class RequestRouter {
         routes.add(new Route(method, pathPattern, regex, handler));
     }
 
+    /**
+     * Handle a full HTTP request lifecycle: parse, route, and write response.
+     *
+     * @param inputStream source stream containing the raw HTTP request bytes
+     * @param outputStream destination stream where the HTTP response will be written
+     * @throws IOException if an I/O error occurs while reading or writing
+     */
     // Este metodo es llamado por Server.java. Su responsabilidad es I/O y manejo de excepciones generales.
     public void handleRequest(InputStream inputStream, OutputStream outputStream) throws IOException {
         ResponseEntity response = null;
@@ -98,6 +114,13 @@ public class RequestRouter {
         }
     }
 
+    /**
+     * Route a parsed {@link HttpRequest} to the appropriate handler.
+     *
+     * @param request parsed HTTP request
+     * @return {@link ResponseEntity} produced by the handler
+     * @throws HttpException if the path or method is not supported
+     */
     // Lógica de enrutamiento: busca la coincidencia declarativa
     public ResponseEntity route(HttpRequest request) {
         String method = request.getMethod();

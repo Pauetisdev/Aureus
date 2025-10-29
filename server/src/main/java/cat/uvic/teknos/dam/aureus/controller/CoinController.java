@@ -19,6 +19,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * REST-like controller handling coin-related HTTP operations.
+ *
+ * <p>This controller is responsible for receiving JSON payloads from the
+ * client, normalizing different collection representations, delegating
+ * persistence operations to a {@code CoinService}, and returning JSON
+ * responses.</p>
+ *
+ * <p>Note: this class performs lenient parsing of collection identifiers
+ * (supports both "collectionId" root fields and primitive/structured
+ * "collection" values) to be tolerant with different client payloads.</p>
+ */
 public class CoinController {
 
     private final CoinService coinService;
@@ -40,21 +52,43 @@ public class CoinController {
         this(coinService, new GsonBuilder().serializeNulls().create());
     }
 
-    // Devuelve JSON de la lista de monedas
+    /**
+     * Return all coins as a JSON array.
+     *
+     * @return JSON representation of the list of coins
+     */
     public String getAllCoins() {
         List<CoinImpl> list = coinService.findAll();
         return gson.toJson(list);
     }
 
-    // Devuelve JSON de una moneda por id, lanza EntityNotFoundException si no existe
+    /**
+     * Return a single coin identified by its id as JSON.
+     *
+     * @param id numeric identifier of the coin to retrieve
+     * @return JSON representation of the coin
+     */
     public String getCoin(int id) {
         CoinImpl coin = coinService.findById(id);
         return gson.toJson(coin);
     }
 
-    // Crea una moneda a partir de JSON y devuelve el JSON creado (incluyendo id)
+    /**
+     * Create a new coin from the provided JSON body.
+     *
+     * <p>The method accepts multiple forms for the collection association:
+     * - a root-level "collectionId" integer field,
+     * - a primitive "collection" value containing the id,
+     * - or a structured "collection" object with an "id" property.
+     * The controller normalizes these forms and delegates creation to the
+     * configured {@code CoinService}.</p>
+     *
+     * @param body JSON request body describing the coin to create
+     * @return JSON representation of the created coin (including generated id)
+     * @throws RuntimeException any unexpected error raised during processing (propagated)
+     */
     public String createCoin(String body) {
-         // Normalizar la forma en que viene la colección: permitir collectionId en raíz o collection como primitivo
+        // Normalizar la forma en que viene la colección: permitir collectionId en raíz o collection como primitivo
         try {
             com.google.gson.JsonElement parsed = com.google.gson.JsonParser.parseString(body);
             if (parsed.isJsonObject()) {
@@ -217,6 +251,16 @@ public class CoinController {
     }
 
     // Nuevo: Actualiza usando el id de la ruta (sobrescribe cualquier id en el body)
+    /**
+     * Update an existing coin using the provided id and JSON body.
+     *
+     * <p>The method normalizes different collection representations and
+     * enforces the path id as the coin identifier. It delegates to the
+     * configured {@code CoinService} to perform the update.</p>
+     *
+     * @param id identifier of the coin to update (path parameter)
+     * @param body JSON request body containing the updated coin fields
+     */
     public void updateCoin(int id, String body) {
         // Normalize collection forms: accept collectionId in root or primitive collection
         try {
@@ -279,7 +323,11 @@ public class CoinController {
         coinService.update(coin);
     }
 
-    // Elimina una moneda por id
+    /**
+     * Delete a coin by its identifier.
+     *
+     * @param id numeric identifier of the coin to delete
+     */
     public void deleteCoin(int id) {
         coinService.delete(id);
     }

@@ -10,6 +10,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * JPA-backed implementation of {@link CoinService}.
+ *
+ * <p>This service converts between the application's {@code CoinImpl}
+ * model and the JPA entity {@code JpaCoin}, performs validations and
+ * delegates persistence to the {@link JpaCoinRepository} and
+ * {@code JpaCollectionRepository}.</p>
+ */
 public class JpaCoinService implements CoinService {
     private final JpaCoinRepository coinRepository;
     private final cat.uvic.teknos.dam.aureus.model.jpa.repositories.JpaCollectionRepository collectionRepository;
@@ -19,6 +27,9 @@ public class JpaCoinService implements CoinService {
         this.collectionRepository = collectionRepository;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<CoinImpl> findAll() {
         List<JpaCoin> jpaCoins = coinRepository.getAll();
@@ -27,6 +38,9 @@ public class JpaCoinService implements CoinService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public CoinImpl findById(int id) {
         try {
@@ -37,6 +51,9 @@ public class JpaCoinService implements CoinService {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public CoinImpl create(CoinImpl coin) {
         System.out.println("JpaCoinService.create: incoming coin payload -> " + coin);
@@ -215,7 +232,8 @@ public class JpaCoinService implements CoinService {
         JpaCoin existing;
         try {
             existing = coinRepository.get(coin.getId());
-        } catch (Exception e) {
+            }
+        catch (Exception e) {
             throw new EntityNotFoundException("Coin not found with id " + coin.getId());
         }
 
