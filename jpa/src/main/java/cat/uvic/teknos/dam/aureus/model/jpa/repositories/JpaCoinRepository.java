@@ -39,6 +39,14 @@ public class JpaCoinRepository implements Repository<Integer, JpaCoin> {
             if (tx.isActive()) {
                 tx.rollback();
             }
+            // Log detailed information to help debugging: exception and root cause
+            System.err.println("JpaCoinRepository.save: exception while saving coin (id=" + coin.getId() + "): " + e.getClass().getName() + ": " + e.getMessage());
+            Throwable cause = e.getCause();
+            while (cause != null) {
+                System.err.println("  Caused by: " + cause.getClass().getName() + ": " + cause.getMessage());
+                cause = cause.getCause();
+            }
+            e.printStackTrace(System.err);
             throw new CrudException("Error saving coin", e);
         }
     }
@@ -125,4 +133,19 @@ public class JpaCoinRepository implements Repository<Integer, JpaCoin> {
             throw new RepositoryException("Error finding coins by year", e);
         }
     }
+
+    // Comprueba si la tabla COIN existe ejecutando una consulta nativa sencilla.
+    public boolean isSchemaPresent() {
+        try {
+            // Intentar una consulta nativa: SELECT 1 FROM COIN LIMIT 1
+            // Dependiendo del dialecto, LIMIT puede funcionar; en general, esto lanzará una excepción si la tabla no existe.
+            entityManager.createNativeQuery("SELECT 1 FROM COIN LIMIT 1").getResultList();
+            return true;
+        } catch (Exception e) {
+            // No imprimimos stacktrace extenso aquí para no ensuciar logs, pero sí lo registramos
+            System.err.println("JpaCoinRepository.isSchemaPresent: schema check failed: " + e.getClass().getName() + ": " + e.getMessage());
+            return false;
+        }
+    }
+
 }

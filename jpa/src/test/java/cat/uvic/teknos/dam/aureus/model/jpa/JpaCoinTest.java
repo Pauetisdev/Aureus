@@ -49,6 +49,17 @@ class JpaCoinTest {
         coin.setEstimatedValue(BigDecimal.valueOf(100.0));
         coin.setOriginCountry("Spain");
 
+        // Create and persist a minimal collection because JpaCoin.collection is not nullable
+        var em = entityManagerFactory.createEntityManager();
+        em.getTransaction().begin();
+        var collection = new JpaCollection();
+        collection.setCollectionName("Default Collection");
+        em.persist(collection);
+        em.getTransaction().commit();
+        em.close();
+
+        coin.setCollection(collection);
+
         // Act
         repository.save(coin);
 

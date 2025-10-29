@@ -13,6 +13,8 @@ public class Client {
     private final String host;
     private final int port;
     private final ObjectMapper mapper = new ObjectMapper();
+    // Cache to avoid repeated requests for collection names
+    private final Map<Integer, String> collectionNameCache = new HashMap<>();
 
     public Client(String host, int port) {
         this.host = host;
@@ -24,7 +26,7 @@ public class Client {
 
         System.out.println("+-----------------------------------------------+");
         System.out.println("|     AUREUS - Coin Management System Client    |");
-        System.out.println("|     Connected to: " + host + ":" + port + "           |");
+        System.out.println("|     Connected to: " + host + ":" + port + "               |");
         System.out.println("+-----------------------------------------------+");
 
         while (true) {
@@ -194,7 +196,9 @@ public class Client {
             jsonBuilder.append(",\"historicalSignificance\":\"").append(escapeJson(historical)).append("\"");
         }
         // include collection id as nested object
+        // Añadimos collectionId también en la raíz para compatibilidad con distintos formatos JSON
         jsonBuilder.append(",\"collection\":{\"id\":").append(collectionId).append("}");
+        jsonBuilder.append(",\"collectionId\":").append(collectionId);
         jsonBuilder.append("}");
 
         System.out.println("\nSending request...\n");
@@ -520,7 +524,14 @@ public class Client {
                 List<List<String>> rowsData = new ArrayList<>();
                 for (Map<String, Object> m : list) {
                     List<String> row = new ArrayList<>();
-                    for (String h : headers) row.add(m.get(h) == null ? "" : String.valueOf(m.get(h)));
+                    for (String h : headers) {
+                        Object raw = m.get(h);
+                        if ("collection".equalsIgnoreCase(h)) {
+                            row.add(formatCollectionValue(raw));
+                        } else {
+                            row.add(formatValue(raw));
+                        }
+                    }
                     rowsData.add(row);
                 }
                 printAsciiTable(headers, rowsData);
@@ -533,7 +544,11 @@ public class Client {
                 List<String> headers = new ArrayList<>(keys);
                 List<List<String>> rowsData = new ArrayList<>();
                 List<String> single = new ArrayList<>();
-                for (String h : headers) single.add(map.get(h) == null ? "" : String.valueOf(map.get(h)));
+                for (String h : headers) {
+                    Object raw = map.get(h);
+                    if ("collection".equalsIgnoreCase(h)) single.add(formatCollectionValue(raw));
+                    else single.add(formatValue(raw));
+                }
                 rowsData.add(single);
                 printAsciiTable(headers, rowsData);
                 return;
@@ -544,6 +559,120 @@ public class Client {
 
         // Not JSON or failed to parse: print raw body
         System.out.println(body);
+    }
+
+    // Helper to format complex values (Map/List) into readable strings for table cells
+    private String formatValue(Object val) {
+        if (val == null) return "";
+        try {
+            if (val instanceof Map) {
+                Map<?,?> mm = (Map<?,?>) val;
+                // If the map contains a nested 'collection' object, prefer that
+                Object maybeNested = mm.get("collection");
+                if (maybeNested instanceof Map) mm = (Map<?,?>) maybeNested;
+
+                // Try several common id/name keys
+                Object id = mm.get("id");
+                if (id == null) id = mm.get("collectionId");
+                if (id == null) id = mm.get("collection_id");
+                if (id == null) id = mm.get("coinId");
+
+                Object name = mm.get("collectionName");
+                if (name == null) name = mm.get("name");
+                if (name == null) name = mm.get("collection_name");
+
+                // If neither id nor name found, try to find any plausible name field
+                if (id == null && name == null) {
+                    for (Map.Entry<?,?> e : mm.entrySet()) {
+                        String k = String.valueOf(e.getKey()).toLowerCase();
+                        if (k.contains("name") || k.contains("title") || k.contains("collection")) {
+                            name = e.getValue();
+                            break;
+                        }
+                    }
+                }
+
+                if (id == null && name == null) return String.valueOf(mm);
+                if (name == null) return String.valueOf(id == null ? "" : id);
+                if (id == null) return String.valueOf(name);
+                return String.valueOf(id) + ": " + String.valueOf(name);
+            }
+            if (val instanceof List) {
+                List<?> lst = (List<?>) val;
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < lst.size(); i++) {
+                    if (i > 0) sb.append(",");
+                    sb.append(lst.get(i) == null ? "" : String.valueOf(lst.get(i)));
+                }
+                return sb.toString();
+            }
+            return String.valueOf(val);
+        } catch (Throwable t) {
+            return String.valueOf(val);
+        }
+    }
+
+    // Special formatting for collection column: if server provided only an id, try to fetch the collection name
+    private String formatCollectionValue(Object raw) {
+        if (raw == null) return "";
+        try {
+            // If it's a map, prefer to extract id and name directly
+            if (raw instanceof Map) {
+                Map<?,?> mm = (Map<?,?>) raw;
+                Object idObj = mm.get("id");
+                if (idObj == null) idObj = mm.get("collectionId");
+                Object nameObj = mm.get("collectionName");
+                if (nameObj == null) nameObj = mm.get("name");
+                if (idObj instanceof Number) {
+                    int id = ((Number) idObj).intValue();
+                    if (nameObj != null) return id + ": " + String.valueOf(nameObj);
+                    return fetchCollectionDisplay(id);
+                }
+                // fallback to map formatting
+                return formatValue(raw);
+            }
+
+            // If it's a numeric value or a numeric string, treat as id
+            if (raw instanceof Number) {
+                int id = ((Number) raw).intValue();
+                return fetchCollectionDisplay(id);
+            }
+            String s = String.valueOf(raw).trim();
+            if (s.matches("\\d+")) {
+                int id = Integer.parseInt(s);
+                return fetchCollectionDisplay(id);
+            }
+            // otherwise, default to generic formatting
+            return formatValue(raw);
+        } catch (Throwable t) {
+            return String.valueOf(raw);
+        }
+    }
+
+    private String fetchCollectionDisplay(int id) {
+        // Check cache first
+        if (collectionNameCache.containsKey(id)) {
+            String name = collectionNameCache.get(id);
+            return name == null || name.isEmpty() ? String.valueOf(id) : (id + ": " + name);
+        }
+        try {
+            Response r = sendRequest("GET", "/collections/" + id, null);
+            String body = r.body == null ? "" : r.body.trim();
+            if (body.isEmpty()) {
+                collectionNameCache.put(id, "");
+                return String.valueOf(id);
+            }
+            Map<String,Object> m = mapper.readValue(body, new TypeReference<>(){});
+            Object name = m.get("collectionName");
+            if (name == null) name = m.get("name");
+            String sname = name == null ? "" : String.valueOf(name);
+            collectionNameCache.put(id, sname);
+            return sname.isEmpty() ? String.valueOf(id) : (id + ": " + sname);
+        } catch (Exception e) {
+            // On error, return id alone
+            collectionNameCache.put(id, "");
+            return String.valueOf(id);
+        }
     }
 
     private static class Response {

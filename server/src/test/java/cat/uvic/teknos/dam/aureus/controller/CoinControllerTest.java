@@ -59,12 +59,13 @@ class CoinControllerTest {
         created.setCoinName("New");
         created.setCoinYear(10);
 
-        when(service.create(any())).thenReturn(created);
+        // El controlador delega a create(coin, collectionId) cuando detecta collectionId en el JSON
+        when(service.create(any(), anyInt())).thenReturn(created);
 
         String requestJson = gson.toJson(toCreate);
         String responseJson = controller.createCoin(requestJson);
         assertTrue(responseJson.contains("\"id\":5") || responseJson.contains("5"));
-        verify(service).create(any());
+        verify(service).create(any(), anyInt());
     }
 
     @Test

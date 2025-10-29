@@ -3,6 +3,9 @@ package cat.uvic.teknos.dam.aureus.controller;
 import cat.uvic.teknos.dam.aureus.model.jpa.JpaCollection;
 import cat.uvic.teknos.dam.aureus.model.jpa.repositories.JpaCollectionRepository;
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -27,5 +30,37 @@ public class CollectionController {
                 })
                 .collect(Collectors.toList());
         return gson.toJson(reduced);
+    }
+
+    // Nuevo: crear una colección a partir de JSON { "collectionName": "name", "description": "..." }
+    public String createCollection(String body) {
+        JsonElement parsed = JsonParser.parseString(body);
+        if (!parsed.isJsonObject()) {
+            throw new IllegalArgumentException("Request body must be a JSON object");
+        }
+        JsonObject obj = parsed.getAsJsonObject();
+        if (!obj.has("collectionName") || obj.get("collectionName").isJsonNull() || obj.get("collectionName").getAsString().trim().isEmpty()) {
+            throw new IllegalArgumentException("collectionName is required");
+        }
+
+        String name = obj.get("collectionName").getAsString().trim();
+        String description = null;
+        if (obj.has("description") && !obj.get("description").isJsonNull()) {
+            description = obj.get("description").getAsString();
+        }
+
+        JpaCollection coll = new JpaCollection();
+        coll.setCollectionName(name);
+        coll.setDescription(description);
+
+        // Persist using repository
+        service.save(coll);
+
+        // Return created object (id + name + description)
+        java.util.Map<String,Object> resp = new java.util.HashMap<>();
+        resp.put("id", coll.getId());
+        resp.put("collectionName", coll.getCollectionName());
+        resp.put("description", coll.getDescription());
+        return gson.toJson(resp);
     }
 }

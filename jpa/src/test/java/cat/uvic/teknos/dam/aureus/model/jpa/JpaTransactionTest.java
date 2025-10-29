@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -97,8 +98,18 @@ class JpaTransactionTest {
     @Order(4)
     @DisplayName("Debe encontrar transacciones dentro de un rango de fechas")
     void shouldFindByDateRange() {
-        LocalDateTime start = LocalDateTime.now().minusHours(1);
-        LocalDateTime end = LocalDateTime.now().plusHours(1);
+        // Crear y persistir una transacción dentro del rango para hacer la prueba independiente
+        var buyer = createAndPersistUser(em, "buyer_range");
+        var seller = createAndPersistUser(em, "seller_range");
+        var txToFind = new JpaTransaction();
+        LocalDateTime txDate = LocalDateTime.now();
+        txToFind.setBuyer(buyer);
+        txToFind.setSeller(seller);
+        txToFind.setTransactionDate(txDate);
+        repository.save(txToFind);
+
+        LocalDateTime start = txDate.minusHours(1);
+        LocalDateTime end = txDate.plusHours(1);
 
         List<JpaTransaction> result = repository.findByDateRange(start, end);
 

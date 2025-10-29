@@ -8,7 +8,6 @@ import cat.uvic.teknos.dam.aureus.model.jpa.repositories.JpaRepositoryFactory;
 import cat.uvic.teknos.dam.aureus.model.jpa.repositories.JpaCoinRepository;
 import cat.uvic.teknos.dam.aureus.service.CoinService;
 import cat.uvic.teknos.dam.aureus.service.JpaCoinService;
-import cat.uvic.teknos.dam.aureus.service.CollectionServiceImpl;
 
 public class DependencyInjector {
 
@@ -22,8 +21,11 @@ public class DependencyInjector {
     }
 
     public static CoinService provideCoinService() {
-        JpaCoinRepository coinRepository = getRepositoryFactory().getCoinRepository();
-        var collRepo = getRepositoryFactory().getCollectionRepository();
+        JpaRepositoryFactory factory = getRepositoryFactory();
+        // Crear repositorios que comparten el mismo EntityManager (sin exponer EntityManager fuera del módulo jpa)
+        var shared = factory.createSharedRepositories();
+        JpaCoinRepository coinRepository = shared.coinRepository;
+        var collRepo = shared.collectionRepository;
         return new JpaCoinService(coinRepository, collRepo);
     }
 

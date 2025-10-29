@@ -3,6 +3,7 @@ package cat.uvic.teknos.dam.aureus.service;
 
 import cat.uvic.teknos.dam.aureus.impl.CoinImpl;
 import cat.uvic.teknos.dam.aureus.service.exception.EntityNotFoundException;
+import cat.uvic.teknos.dam.aureus.impl.CoinCollectionImpl;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -51,6 +52,27 @@ public class CoinServiceImpl implements CoinService {
         }
         store.put(coin.getId(), coin);
         return coin;
+    }
+
+    @Override
+    public CoinImpl create(CoinImpl coin, Integer collectionId) {
+        if (collectionId != null) {
+            // Si no tiene colección, crear una implementación mínima con el id
+            if (coin.getCollection() == null) {
+                CoinCollectionImpl ci = new CoinCollectionImpl();
+                ci.setId(collectionId);
+                coin.setCollection(ci);
+            } else {
+                // si ya tiene una colección, intentar fijar el id si es posible
+                try {
+                    java.lang.reflect.Method m = coin.getCollection().getClass().getMethod("setId", Integer.class);
+                    m.invoke(coin.getCollection(), collectionId);
+                } catch (Throwable ignored) {
+                    // no hacemos nada si no se puede setear
+                }
+            }
+        }
+        return create(coin);
     }
 
     @Override

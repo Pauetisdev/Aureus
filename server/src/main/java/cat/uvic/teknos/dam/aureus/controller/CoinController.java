@@ -54,15 +54,126 @@ public class CoinController {
 
     // Crea una moneda a partir de JSON y devuelve el JSON creado (incluyendo id)
     public String createCoin(String body) {
+         // Normalizar la forma en que viene la colección: permitir collectionId en raíz o collection como primitivo
+        try {
+            com.google.gson.JsonElement parsed = com.google.gson.JsonParser.parseString(body);
+            if (parsed.isJsonObject()) {
+                com.google.gson.JsonObject obj = parsed.getAsJsonObject();
+                boolean modified = false;
+                // Si hay collectionId en la raíz, convertir a collection:{id:...}
+                if (obj.has("collectionId") && !obj.get("collectionId").isJsonNull()) {
+                    com.google.gson.JsonElement cid = obj.get("collectionId");
+                    com.google.gson.JsonObject collObj = new com.google.gson.JsonObject();
+                    collObj.add("id", cid);
+                    obj.add("collection", collObj);
+                    obj.remove("collectionId");
+                    modified = true;
+                } else if (obj.has("collection") && !obj.get("collection").isJsonNull()) {
+                    com.google.gson.JsonElement collElem = obj.get("collection");
+                    // Si collection es primitivo (número o string con número), convertir a objeto {id:...}
+                    if (collElem.isJsonPrimitive()) {
+                        com.google.gson.JsonPrimitive prim = collElem.getAsJsonPrimitive();
+                        try {
+                            com.google.gson.JsonObject collObj = new com.google.gson.JsonObject();
+                            if (prim.isNumber()) {
+                                collObj.addProperty("id", prim.getAsInt());
+                            } else if (prim.isString()) {
+                                collObj.addProperty("id", Integer.parseInt(prim.getAsString()));
+                            }
+                            obj.add("collection", collObj);
+                            modified = true;
+                        } catch (NumberFormatException ignored) {
+                            // leave as-is
+                        }
+                    }
+                }
+                if (modified) {
+                    body = obj.toString();
+                }
+            }
+        } catch (Exception ignored) {}
+
+        // --- LOG: imprimir body normalizado y extracción de collectionId antes de validar
+        System.out.println("CoinController.createCoin: normalized body = " + body);
+        Integer preExtractedCollectionId = null;
+        try {
+            com.google.gson.JsonElement parsedForLog = com.google.gson.JsonParser.parseString(body);
+            if (parsedForLog.isJsonObject()) {
+                com.google.gson.JsonObject objForLog = parsedForLog.getAsJsonObject();
+                Integer cid = extractCollectionIdFromJsonObject(objForLog);
+                preExtractedCollectionId = cid;
+                System.out.println("CoinController.createCoin: extracted collectionId from JSON = " + cid);
+                // Use the detected id for the rest of the flow
+            }
+        } catch (Exception ignored) {}
+
+        // Fallback: intentar extraer con regex directamente del body (por si el parseo JSON falla por algún motivo)
+        if (preExtractedCollectionId == null) {
+            try {
+                java.util.regex.Pattern p1 = java.util.regex.Pattern.compile("\"collectionId\"\s*:\s*(\\d+)");
+                java.util.regex.Matcher m1 = p1.matcher(body);
+                if (m1.find()) {
+                    preExtractedCollectionId = Integer.parseInt(m1.group(1));
+                    System.out.println("CoinController.createCoin: extracted collectionId from body via regex (collectionId) = " + preExtractedCollectionId);
+                } else {
+                    java.util.regex.Pattern p2 = java.util.regex.Pattern.compile("\"collection\"\s*:\s*\\{[^}]*\"id\"\s*:\s*(\\d+)[^}]*\\}");
+                    java.util.regex.Matcher m2 = p2.matcher(body);
+                    if (m2.find()) {
+                        preExtractedCollectionId = Integer.parseInt(m2.group(1));
+                        System.out.println("CoinController.createCoin: extracted collectionId from body via regex (collection.id) = " + preExtractedCollectionId);
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
         // Validación a nivel de JSON para evitar problemas de deserialización parcial
-        validateJsonForCreate(body);
-        // Luego deserializar ya sabiendo que los campos obligatorios existen
+        validateJsonForCreate(body, preExtractedCollectionId);
+        // Deserializar el cuerpo en CoinImpl (sin depender de que collection se haya mapeado correctamente)
         CoinImpl coin = parsingGson.fromJson(body, CoinImpl.class);
+
+        // LOG: imprimir estado de coin.collection tras deserialización
+        System.out.println("CoinController.createCoin: coin.getCollection() after deserialization = " + coin.getCollection());
+
+        // Si no detectamos collectionId antes, intentar ahora extraerlo desde la instancia deserializada
+        if (preExtractedCollectionId == null) {
+            try {
+                Integer cidFromCoin = extractCollectionId(coin.getCollection());
+                if (cidFromCoin != null) {
+                    preExtractedCollectionId = cidFromCoin;
+                    System.out.println("CoinController.createCoin: extracted collectionId from deserialized coin = " + cidFromCoin);
+                }
+            } catch (Throwable ignored) {}
+        }
+
+        // Si disponemos de collectionId detectado, delegar al servicio que cargará la colección con el repositorio/EM correcto
+        if (preExtractedCollectionId != null) {
+            System.out.println("CoinController.createCoin: delegating to coinService.create with collectionId=" + preExtractedCollectionId);
+            // Ensure coin contains this collection id as well so convertToJpaCoin can pick it up
+            try {
+                if (coin.getCollection() == null) {
+                    cat.uvic.teknos.dam.aureus.impl.CoinCollectionImpl ci = new cat.uvic.teknos.dam.aureus.impl.CoinCollectionImpl();
+                    ci.setId(preExtractedCollectionId);
+                    coin.setCollection(ci);
+                } else {
+                    // overwrite id to ensure consistency
+                    try {
+                        java.lang.reflect.Method m = coin.getCollection().getClass().getMethod("setId", Integer.class);
+                        m.invoke(coin.getCollection(), preExtractedCollectionId);
+                    } catch (Throwable ignored) {}
+                }
+            } catch (Throwable t) {
+                // ignore
+            }
+            CoinImpl created = coinService.create(coin, preExtractedCollectionId);
+            return gson.toJson(created);
+        }
+
         CoinImpl created = coinService.create(coin);
         return gson.toJson(created);
     }
 
-    private void validateJsonForCreate(String body) {
+    // Nueva sobrecarga: acepta un collectionId ya extraído desde el JSON y lo considera válido
+    private void validateJsonForCreate(String body, Integer preExtractedCollectionId) {
         JsonElement parsed = JsonParser.parseString(body);
         if (!parsed.isJsonObject()) throw new HttpException(400, "Bad Request", "Request body must be a JSON object");
         JsonObject obj = parsed.getAsJsonObject();
@@ -77,14 +188,7 @@ public class CoinController {
         if (!hasNonEmptyString(obj, "originCountry")) missing.add("originCountry");
         // historicalSignificance is optional per DB rules - do not require it here
 
-        // Validar collection.id o collection.collectionId
-        if (!obj.has("collection") || obj.get("collection").isJsonNull()) {
-            missing.add("collectionId");
-        } else {
-            JsonObject coll = obj.getAsJsonObject("collection");
-            boolean hasId = (coll.has("id") && !coll.get("id").isJsonNull()) || (coll.has("collectionId") && !coll.get("collectionId").isJsonNull());
-            if (!hasId) missing.add("collectionId");
-        }
+        // No exigimos collectionId aquí: la asignación/validación de la colección la realiza el servicio (por defecto o error claro)
 
         if (!missing.isEmpty()) {
             String msg = "Missing required fields: " + String.join(", ", missing);
@@ -169,6 +273,30 @@ public class CoinController {
         } catch (Throwable t) {
             // swallow and return null
         }
+        return null;
+    }
+
+    // Helper: extrae collectionId desde el JsonObject considerando varias formas (collectionId raiz, collection primitivo, collection.obj.id)
+    private Integer extractCollectionIdFromJsonObject(com.google.gson.JsonObject obj) {
+        try {
+            if (obj.has("collectionId") && !obj.get("collectionId").isJsonNull()) {
+                try { return obj.get("collectionId").getAsInt(); } catch (Exception e) { try { return Integer.parseInt(obj.get("collectionId").getAsString()); } catch (Exception ignored) {} }
+            }
+            if (obj.has("collection") && !obj.get("collection").isJsonNull()) {
+                com.google.gson.JsonElement collElem = obj.get("collection");
+                if (collElem.isJsonPrimitive()) {
+                    try { return collElem.getAsInt(); } catch (Exception e) { try { return Integer.parseInt(collElem.getAsString()); } catch (Exception ignored) {} }
+                } else if (collElem.isJsonObject()) {
+                    com.google.gson.JsonObject collObj = collElem.getAsJsonObject();
+                    if (collObj.has("id") && !collObj.get("id").isJsonNull()) {
+                        try { return collObj.get("id").getAsInt(); } catch (Exception e) { try { return Integer.parseInt(collObj.get("id").getAsString()); } catch (Exception ignored) {} }
+                    }
+                    if (collObj.has("collectionId") && !collObj.get("collectionId").isJsonNull()) {
+                        try { return collObj.get("collectionId").getAsInt(); } catch (Exception e) { try { return Integer.parseInt(collObj.get("collectionId").getAsString()); } catch (Exception ignored) {} }
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
         return null;
     }
 }

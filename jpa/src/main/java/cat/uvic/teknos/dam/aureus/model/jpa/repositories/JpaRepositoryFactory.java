@@ -6,25 +6,42 @@ import jakarta.persistence.Persistence;
 
 public class JpaRepositoryFactory {
     private final EntityManagerFactory entityManagerFactory;
-    private final EntityManager entityManager;
 
     public JpaRepositoryFactory() {
+        // Crear solo el EntityManagerFactory una vez; crear EntityManagers por petición
         this.entityManagerFactory = Persistence.createEntityManagerFactory("aureus");
-        this.entityManager = entityManagerFactory.createEntityManager();
+    }
+
+    public EntityManager createEntityManager() {
+        return entityManagerFactory.createEntityManager();
     }
 
     public JpaCoinRepository getCoinRepository() {
-        return new JpaCoinRepository(entityManager);
+        return new JpaCoinRepository(createEntityManager());
     }
 
     public JpaCollectionRepository getCollectionRepository() {
-        return new JpaCollectionRepository(entityManager);
+        return new JpaCollectionRepository(createEntityManager());
+    }
+
+    // Contenedor público para devolver repositorios que comparten el mismo EntityManager
+    public static class SharedRepositories {
+        public final JpaCoinRepository coinRepository;
+        public final JpaCollectionRepository collectionRepository;
+
+        public SharedRepositories(JpaCoinRepository coinRepository, JpaCollectionRepository collectionRepository) {
+            this.coinRepository = coinRepository;
+            this.collectionRepository = collectionRepository;
+        }
+    }
+
+    // Crear y devolver ambos repositorios que usan el mismo EntityManager, sin exponer EntityManager
+    public SharedRepositories createSharedRepositories() {
+        var em = createEntityManager();
+        return new SharedRepositories(new JpaCoinRepository(em), new JpaCollectionRepository(em));
     }
 
     public void close() {
-        if (entityManager != null && entityManager.isOpen()) {
-            entityManager.close();
-        }
         if (entityManagerFactory != null && entityManagerFactory.isOpen()) {
             entityManagerFactory.close();
         }

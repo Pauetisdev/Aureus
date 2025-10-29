@@ -97,6 +97,13 @@ public class JpaCoinTransactionTest {
         em.persist(seller);
         em.getTransaction().commit();
 
+        // Crear y persistir una colección mínima para asignar a la moneda
+        em.getTransaction().begin();
+        JpaCollection collection = new JpaCollection();
+        collection.setCollectionName("Tx Collection");
+        em.persist(collection);
+        em.getTransaction().commit();
+
         // Crear y persistir moneda
         JpaCoin coin = new JpaCoin();
         coin.setCoinName("Golden Dollar");
@@ -106,6 +113,8 @@ public class JpaCoinTransactionTest {
         coin.setCoinDiameter(new BigDecimal("25.0"));
         coin.setEstimatedValue(new BigDecimal("100.0"));
         coin.setOriginCountry("Spain");
+        // Assign the persisted collection (required non-null)
+        coin.setCollection(collection);
         em.getTransaction().begin();
         em.persist(coin);
         em.getTransaction().commit();

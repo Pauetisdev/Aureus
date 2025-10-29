@@ -8,6 +8,7 @@ public interface CoinService {
     List<CoinImpl> findAll();
     CoinImpl findById(int id);
     CoinImpl create(CoinImpl coin);
+    CoinImpl create(CoinImpl coin, Integer collectionId);
     void update(CoinImpl coin);
     void delete(int id);
 }

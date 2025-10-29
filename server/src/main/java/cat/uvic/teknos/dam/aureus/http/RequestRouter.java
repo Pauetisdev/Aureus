@@ -44,6 +44,7 @@ public class RequestRouter {
         // Rutas para collections (si hay controller)
         if (collectionController != null) {
             registerRoute("GET", "/collections", null, (req, var) -> handleGetAllCollections());
+            registerRoute("POST", "/collections", null, (req, var) -> handleCreateCollection(req));
         }
 
         // Rutas dinámicas (/coins/{id})
@@ -64,7 +65,7 @@ public class RequestRouter {
         routes.add(new Route(method, pathPattern, regex, handler));
     }
 
-    // Este método es llamado por Server.java. Su responsabilidad es I/O y manejo de excepciones generales.
+    // Este metodo es llamado por Server.java. Su responsabilidad es I/O y manejo de excepciones generales.
     public void handleRequest(InputStream inputStream, OutputStream outputStream) throws IOException {
         ResponseEntity response = null;
 
@@ -160,6 +161,20 @@ public class RequestRouter {
     private ResponseEntity handleDeleteCoin(int id) {
         coinController.deleteCoin(id);
         return createEmptyResponseEntity(204, "No Content");
+    }
+
+    private ResponseEntity handleCreateCollection(HttpRequest request) {
+        String body = getRequestBody(request);
+        try {
+            String jsonBody = collectionController.createCollection(body);
+            return createJsonResponseEntity(201, "Created", jsonBody);
+        } catch (IllegalArgumentException e) {
+            return createErrorResponse(400, "Bad Request", e.getMessage());
+        } catch (Exception e) {
+            System.err.println("Unexpected error creating collection: " + e.getMessage());
+            e.printStackTrace(System.err);
+            return createErrorResponse(500, "Internal Server Error", "An unexpected error occurred while creating collection");
+        }
     }
 
     // --- MÉTODOS AUXILIARES HTTP (Creación de Respuesta) ---
