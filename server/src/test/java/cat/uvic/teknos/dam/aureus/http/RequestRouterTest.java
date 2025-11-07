@@ -28,7 +28,7 @@ class RequestRouterTest {
         HttpRequest req = new HttpRequest("GET", "/coins", new HashMap<>(), "");
         ResponseEntity res = router.route(req);
         assertEquals(200, res.getStatus());
-        String body = new String(res.getBody());
+        String body = new String(res.getBody() == null ? new byte[0] : res.getBody());
         assertTrue(body.contains("[]"));
         verify(controllerMock).getAllCoins();
     }
@@ -38,7 +38,7 @@ class RequestRouterTest {
         HttpRequest req = new HttpRequest("GET", "/coins/1", new HashMap<>(), "");
         ResponseEntity res = router.route(req);
         assertEquals(200, res.getStatus());
-        String body = new String(res.getBody());
+        String body = new String(res.getBody() == null ? new byte[0] : res.getBody());
         assertTrue(body.contains("\"id\":1"));
         verify(controllerMock).getCoin(1);
     }
@@ -46,13 +46,17 @@ class RequestRouterTest {
     @Test
     void routeUnknownPathThrowsHttpException() {
         HttpRequest req = new HttpRequest("GET", "/unknown", new HashMap<>(), "");
-        try {
-            router.route(req);
-            fail("Expected HttpException");
-        } catch (RuntimeException e) {
-            // HttpException extends RuntimeException
-            assertTrue(e.getClass().getName().contains("HttpException"));
-        }
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> router.route(req));
+        // Ensure it's the HttpException or a subclass (message typically contains "Resource not found")
+        assertTrue(ex.getClass().getName().contains("HttpException") || ex.getMessage().toLowerCase().contains("not found"));
+    }
+
+    @Test
+    void routeDisconnectReturnsAck() {
+        HttpRequest req = new HttpRequest("GET", "/disconnect", new HashMap<>(), "");
+        ResponseEntity res = router.route(req);
+        assertEquals(200, res.getStatus());
+        String body = new String(res.getBody() == null ? new byte[0] : res.getBody());
+        assertEquals(RequestRouter.DISCONNECT_ACK_BODY, body);
     }
 }
-

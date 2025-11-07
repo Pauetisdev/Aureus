@@ -8,8 +8,11 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.lang.reflect.Field;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 class ServerTest {
 
@@ -56,7 +59,7 @@ class ServerTest {
 
                     @Override
                     public synchronized void close() {
-
+                        // no-op to avoid closing underlying streams in test
                     }
                 };
             }
@@ -70,6 +73,12 @@ class ServerTest {
 
         // Verify router was invoked
         verify(router, atLeastOnce()).handleRequest(any(InputStream.class), any(OutputStream.class));
+
+        // Reflectively check that connectedClients counter returned to 0
+        Field connectedField = Server.class.getDeclaredField("connectedClients");
+        connectedField.setAccessible(true);
+        AtomicInteger connected = (AtomicInteger) connectedField.get(server);
+        assertNotNull(connected, "connectedClients field should be present");
+        assertEquals(0, connected.get(), "After shutdown there should be no connected clients");
     }
 }
-

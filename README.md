@@ -1,170 +1,411 @@
-```ascii
- █████╗ ██╗   ██╗██████╗ ███████╗██╗   ██╗███████╗
-██╔══██╗██║   ██║██╔══██╗██╔════╝██║   ██║██╔════╝
-███████║██║   ██║██████╔╝█████╗  ██║   ██║███████╗
-██╔══██║██║   ██║██╔══██╗██╔══╝  ██║   ██║╚════██║
-██║  ██║╚██████╔╝██║  ██║███████╗╚██████╔╝███████║
-╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚══════╝
-```
+# Aureus
 
-**Idioma / Language:** [🇪🇸 Español](#-español) | [🇬🇧 English](#-english)
+Aureus es un proyecto modular en Java para la gestión de colecciones de monedas (coins). Está diseñado con una arquitectura cliente‑servidor y módulos separados para persistencia (JPA y JDBC), modelo, repositorios y utilidades.
+
+---
+
+Índice (ES / EN)
+- Resumen
+- Arquitectura y módulos
+- Modelo de datos (entidades principales)
+- API HTTP (endpoints más relevantes)
+- Cliente de consola: comportamiento y UX
+- Cómo construir y ejecutar (servidor y cliente)
+- Configuración de la base de datos
+- Ejemplos prácticos (curl)
+- Pruebas y desarrollo
+- Errores comunes y solución rápida
+- Cómo contribuir
+- Licencia y contacto
+
 ---
 
 ## 🇪🇸 Español
 
-## 📋 Descripción
-Aureus es un proyecto de software modular desarrollado en Java que sigue un enfoque de arquitectura limpia. Su objetivo principal es ofrecer una solución robusta y escalable para la gestión y manipulación de datos almacenados en bases de datos. El proyecto soporta la persistencia de datos mediante dos tecnologías muy utilizadas: JPA (Java Persistence API) y JDBC (Java Database Connectivity). Esta doble opción permite a los desarrolladores elegir la mejor alternativa según el caso de uso o las necesidades de rendimiento.
+### Resumen
+Aureus es una aplicación Java modular que proporciona:
+- Un servidor HTTP simple que expone una API REST‑like para gestionar monedas y colecciones.
+- Un cliente de consola que interactúa con el servidor (menu interactivo) para realizar operaciones CRUD.
 
-Diseñado pensando en la extensibilidad y mantenibilidad, Aureus separa las responsabilidades en módulos bien definidos, facilitando la incorporación de nuevas funcionalidades o la modificación de las existentes sin afectar al sistema completo. La arquitectura promueve principios de código limpio y fomenta las mejores prácticas en el diseño de software.
+El proyecto está organizado para facilitar el cambio entre implementaciones de persistencia (JPA o JDBC) y para favorecer la separación de responsabilidades.
 
-## 📚 Documentación
+### Arquitectura y módulos
+Breve visión de los módulos más importantes:
+- `server`: Implementa el servidor HTTP y la lógica de negocio expuesta vía endpoints.
+- `clients/console`: Cliente de consola (CLI) para interactuar con la API.
+- `model`: Clases que definen las entidades del dominio (Coin, Collection, etc.).
+- `repositories`: Interfaces y adaptadores para acceso a datos.
+- `jpa` / `jdbc`: Implementaciones de persistencia.
+- `utilities` / `app`: Código común, utilidades y orquestación.
 
-**[🔗 Ver documentación completa (Javadoc)](https://courageous-baklava-e567dd.netlify.app/)**
+Diagrama conceptual (simplificado):
 
-## 🏗️ Estructura del Proyecto
-El proyecto se organiza en módulos independientes para facilitar el desarrollo y mantenimiento:
+Client (console) <--HTTP--> Server <--repositories--> Persistence (JPA / JDBC) <---> Database
 
-- **app**: Módulo principal que orquesta la aplicación.
-- **jpa**: Implementación de la persistencia mediante Java Persistence API.
-- **jdbc**: Implementación de acceso a base de datos mediante JDBC
-- **model**: Definición de las entidades y modelos de datos.
-- **utilities**: Funciones y clases utilitarias comunes.
-- **repositories**: Capa encargada de la abstracción del acceso a datos.
-- **docs**: Documentación relacionada con el proyecto.
+### Modelo de datos (entidades principales)
+A continuación se indican los campos principales que maneja la API para `Coin` y `Collection`. Pueden variar según la implementación, pero sirven como guía.
 
-## 🛠️ Tecnologías Utilizadas
-- Java 21
-- Gradle como sistema de construcción y gestión de dependencias
+Coin (ejemplo de campos):
+- id (Integer)
+- coinName (String)
+- coinYear (Integer)
+- coinMaterial (String)
+- coinWeight (Double)
+- coinDiameter (Double)
+- estimatedValue (Double)
+- originCountry (String)
+- historicalSignificance (String)
+- description (String)
+- collectionId (Integer) ó collection (objeto anidado con id y name)
 
-## ⚙️ Requisitos
-- JDK 21 o superior instalado
-- Gradle (se incluye el wrapper para no requerir instalación global)
+Collection (ejemplo de campos):
+- id (Integer)
+- collectionName (String) ó name (String)
+- description (String)
 
-## 🚀 Guía Rápida de Inicio
+> Nota: el cliente de consola está diseñado para enviar `collectionId` en POST/PUT en lugar del objeto anidado `collection` para evitar errores en el servidor (PropertyValueException).
 
-1. Clona el repositorio:
-    ```bash
-    git clone <url-del-repositorio>
-    ```
+### API HTTP (endpoints más relevantes)
+Estos endpoints son los que utiliza el cliente de consola y los ejemplos curl abajo:
+- GET /coins — lista todas las monedas (array JSON)
+- GET /coins/{id} — obtiene una moneda por id (objeto JSON)
+- POST /coins — crea una moneda (payload JSON con campos permitidos)
+- PUT /coins/{id} — actualiza una moneda (payload JSON con campos permitidos)
+- DELETE /coins/{id} — elimina una moneda
 
-2. Entra en el directorio del proyecto:
-    ```bash
-    cd aureus
-    ```
+- GET /collections — lista colecciones
+- GET /collections/{id} — obtiene una colección por id
 
-3. Construye el proyecto:
-    ```bash
-    ./gradlew build
-    ```
+Cada respuesta sigue un patrón HTTP estándar: códigos 2xx para éxito, 4xx/5xx para errores. En particular, DELETE suele responder 204 No Content; el cliente captura la información previa y la muestra al usuario para confirmación.
 
-## 📄 Licencia
-Este proyecto está bajo la licencia [MIT License](LICENSE).
+### Cliente de consola: comportamiento y UX
+El cliente (`clients/console`) ofrece un menú interactivo con opciones para listar, obtener por id, crear, actualizar y eliminar monedas.
+Puntos clave de la UX del cliente:
+- Antes de pedir un ID para operaciones GET/UPDATE/DELETE, el cliente muestra una tabla compacta con los IDs y nombres disponibles (para que el usuario pueda escoger más fácilmente).
+- Si el usuario introduce un ID que no existe, el cliente muestra un mensaje de error conciso y no vuelve a imprimir la lista completa.
+- En `create` y `update`: cuando se pide `Collection ID`, el cliente muestra la tabla de colecciones (id / name) — ¡solo la tabla de colecciones! — (antes había confusión entre tablas).
+- Al crear/actualizar, el campo de nombre (`coinName`) se normaliza a Title Case (primera letra en mayúscula de cada palabra).
+- En `update`, el cliente obtiene la entidad existente, permite editar campos (dejando en blanco para mantener el valor) y después de un PUT exitoso realiza un GET para mostrar la moneda actualizada.
+- En `delete`, antes de eliminar, el cliente solicita confirmación (en inglés). Si la eliminación es exitosa, muestra la tabla con la información del registro eliminado y un mensaje de confirmación.
 
-Puedes usarlo libremente, modificarlo y distribuirlo bajo los términos de la MIT License. Para más detalles, consulta el archivo LICENSE.
+### Cómo construir y ejecutar
+Requisitos: JDK 21+ y Gradle wrapper están incluidos.
 
-## 👥 Cómo Contribuir
-Las contribuciones son siempre bienvenidas. Para colaborar sigue estos pasos:
+Desde la raíz del repositorio:
 
-1. Haz un fork del repositorio.
-2. Crea una rama para tu nueva funcionalidad:
-    ```bash
-    git checkout -b feature/NombreDeTuFeature
-    ```
-3. Realiza los commits con mensajes claros:
-    ```bash
-    git commit -m "Agrega descripción de tu feature"
-    ```
-4. Envía tu rama al repositorio remoto:
-    ```bash
-    git push origin feature/NombreDeTuFeature
-    ```
-5. Abre un Pull Request para revisión.
+Linux / macOS:
 
-## 📬 Contacto
-Para cualquier consulta o aporte, puedes contactar a:
+```bash
+./gradlew build
+```
 
+Windows (cmd.exe):
+
+```bat
+gradlew.bat build
+```
+
+Ejecutar el servidor (por defecto escucha en el puerto configurado en el código del servidor):
+
+```bash
+# Linux / macOS
+./gradlew :server:run
+
+# Windows (cmd.exe)
+gradlew.bat :server:run
+```
+
+Ejecutar el cliente de consola (por defecto usa host=localhost, port=5000; también acepta variables de entorno o args):
+
+```bash
+# Con args
+./gradlew :clients:console:run --args="localhost 5000"
+
+# Windows (cmd.exe)
+gradlew.bat :clients:console:run --args="localhost 5000"
+```
+
+O ejecutar los JAR generados:
+
+```bash
+java -jar server/build/libs/server.jar
+java -jar clients/console/build/libs/console.jar
+```
+
+Variables de entorno que reconoce el cliente:
+- `AUREUS_HOST` — host del servidor (default `localhost`)
+- `AUREUS_PORT` — puerto del servidor (default `5000`)
+
+### Configuración de la base de datos
+El proyecto contiene dos implementaciones de persistencia (JPA y JDBC). Revisa `jpa` y `jdbc` para ver cómo se configuran las `datasource.properties` (hay ejemplos en `app/bin/test` y `app/bin/main` o en `docs/database`).
+
+Si usas JPA, asegúrate de que las propiedades de `persistence.xml` o la configuración del EntityManager apunten a la base de datos correcta (URL, usuario, contraseña). Para pruebas locales puedes usar una base de datos en memoria (H2) si está configurada.
+
+### Ejemplos prácticos (curl)
+Crear una moneda (POST):
+
+```bash
+curl -v -X POST http://localhost:5000/coins \
+  -H "Content-Type: application/json" \
+  -d '{
+    "coinName": "Aureus",
+    "coinYear": 125,
+    "coinMaterial": "Gold",
+    "coinWeight": 7.5,
+    "coinDiameter": 18.0,
+    "estimatedValue": 1000.0,
+    "originCountry": "Romania",
+    "historicalSignificance": "Imperial coin",
+    "description": "Ancient gold coin",
+    "collectionId": 4
+  }'
+```
+
+Actualizar una moneda (PUT):
+
+```bash
+curl -v -X PUT http://localhost:5000/coins/123 \
+  -H "Content-Type: application/json" \
+  -d '{ "coinName": "Aureus Updated", "estimatedValue": 1200.0, "collectionId": 5 }'
+```
+
+Obtener moneda por id (GET):
+
+```bash
+curl -v http://localhost:5000/coins/123
+```
+
+Listar colecciones (GET):
+
+```bash
+curl -v http://localhost:5000/collections
+```
+
+Eliminar una moneda (DELETE):
+
+```bash
+curl -v -X DELETE http://localhost:5000/coins/123
+```
+
+### Pruebas y desarrollo
+- Ejecutar pruebas unitarias y de integración con Gradle:
+
+```bash
+# Ejecuta tests de todos los módulos
+./gradlew test
+
+# Windows (cmd.exe)
+gradlew.bat test
+```
+
+- Para desarrollar en el cliente, edita `clients/console/src/main/java/cat/uvic/teknos/dam/aureus/Client.java` y ejecuta solo el módulo de consola:
+
+```bash
+./gradlew :clients:console:run --args="localhost 5000"
+```
+
+### Errores comunes y solución rápida
+- PropertyValueException al editar (500): suele ocurrir si se envía un objeto `collection` anidado en lugar de `collectionId` en el JSON del PUT/POST. Solución: enviar solo `collectionId` o campos primitivos (el cliente ya evita esto).
+- HTTP 204 No Content en delete: el servidor puede devolver 204; el cliente ahora muestra la información previa al DELETE para que tengas una confirmación visual.
+- ID no existente: si introduces un ID inválido en el cliente, verás un mensaje de error expresivo (por ejemplo: "Error: Coin not found with id 1212 (HTTP 404)").
+- Problemas de JNA/pty en Windows durante compilación: si ves errores nativos en la salida del build en el IDE, intenta compilar desde cmd.exe con `gradlew.bat`.
+
+### Buenas prácticas para desarrolladores
+- Mantén las modificaciones de la API compatibles: no cambies los campos esperados por el cliente sin versionado.
+- Evita enviar objetos anidados desde el cliente salvo que la API lo pida explícitamente; prefiere IDs y campos primitivos.
+- Añade tests y documentación cuando modifiques endpoints.
+
+### Cómo contribuir
+1. Haz fork del repositorio.
+2. Crea una rama para tu feature: `git checkout -b feature/mi-feature`.
+3. Haz cambios y commits claros.
+4. Envía un Pull Request para revisión.
+
+### Licencia
+MIT — consulta el archivo `LICENSE`.
+
+### Contacto
 - Email: pauetisdev@gmail.com
-- O abrir un issue en el repositorio
 
 ---
-¡Gracias por interesarte en Aureus! 🪙🚀
 
-...
 ## 🇬🇧 English
 
-## 📋 Description
-Aureus is a modular software project developed in Java that follows a clean architecture approach. Its main goal is to provide a robust and scalable solution for managing and manipulating data stored in databases. The project supports data persistence using two widely adopted technologies: JPA (Java Persistence API) and JDBC (Java Database Connectivity). This dual approach allows developers to choose the best option depending on the use case or performance requirements.
+### Summary
+Aureus is a modular Java project to manage coin collections. It provides a simple HTTP server (REST‑like API) and a console client (CLI) to perform CRUD operations on coins and collections.
 
-Designed with extensibility and maintainability in mind, Aureus separates responsibilities into well-defined modules, making it easier to add new features or modify existing ones without affecting the entire system. The architecture promotes clean code principles and encourages best practices in software design.
+### Architecture and modules
+- `server`: HTTP server exposing endpoints (GET/POST/PUT/DELETE for coins and collections).
+- `clients/console`: Interactive console client that communicates with the server.
+- `model`: Domain entities (Coin, Collection).
+- `repositories`: Data access interfaces and adapters.
+- `jpa` / `jdbc`: Persistence implementations.
 
-## 📚 Documentation
+### Data model (main entities)
+Coin fields (example):
+- id (Integer)
+- coinName (String)
+- coinYear (Integer)
+- coinMaterial (String)
+- coinWeight (Double)
+- coinDiameter (Double)
+- estimatedValue (Double)
+- originCountry (String)
+- historicalSignificance (String)
+- description (String)
+- collectionId (Integer) or collection (nested object)
 
-**[🔗 See complete documentation (Javadoc)](https://courageous-baklava-e567dd.netlify.app/)**
+Collection fields (example):
+- id (Integer)
+- collectionName or name (String)
+- description (String)
 
-## 🏗️ Project Structure
-The project is organized into independent modules to facilitate development and maintenance:
+Note: The console client prefers `collectionId` to avoid nested-object payloads on POST/PUT.
 
-- **app**: Main module that orchestrates the application.
-- **jpa**: Persistence implementation using the Java Persistence API.
-- **jdbc**: Database access implementation using JDBC.
-- **model**: Definition of entities and data models.
-- **utilities**: Common utility functions and classes.
-- **repositories**: Layer responsible for data access abstraction.
-- **docs**: Project-related documentation.
+### HTTP API (key endpoints)
+- GET /coins
+- GET /coins/{id}
+- POST /coins
+- PUT /coins/{id}
+- DELETE /coins/{id}
+- GET /collections
+- GET /collections/{id}
 
-## 🛠️ Technologies Used
-- Java 21
-- Gradle as the build and dependency management system
+Responses use standard HTTP codes. DELETE may return 204 No Content; the client shows the previously fetched record for confirmation.
 
-## ⚙️ Requirements
-- JDK 21 or higher installed
-- Gradle (wrapper included, so no global installation required)
+### Console client: behavior and UX
+- Shows lists of available coin IDs before asking for user selection.
+- Shows collections table before asking for `Collection ID` in create/update flows.
+- Normalizes `coinName` to Title Case automatically.
+- After successful PUT, performs a GET and shows the updated coin.
+- On DELETE, asks for confirmation and then shows the deleted coin info along with a success message.
 
-## 🚀 Quick Start Guide
+### Build & run
+Requirements: JDK 21+, Gradle wrapper.
 
-1. Clone the repository:
-    ```bash
-    git clone <repository-url>
-    ```
+Build all modules:
 
-2. Enter the project directory:
-    ```bash
-    cd aureus
-    ```
+```bash
+./gradlew build
+```
 
-3. Build the project:
-    ```bash
-    ./gradlew build
-    ```
+Run server:
 
-## 📄 License
-This project is licensed under the [MIT License](LICENSE).
+```bash
+./gradlew :server:run
+```
 
-You are free to use, modify, and distribute it under the terms of the MIT License. For more details, check the LICENSE file.
+Run console client (passing server host and port as args):
 
-## 👥 How to Contribute
-Contributions are always welcome. To collaborate, follow these steps:
+```bash
+./gradlew :clients:console:run --args="localhost 5000"
+```
 
-1. Fork the repository.
-2. Create a branch for your new feature:
-    ```bash
-    git checkout -b feature/YourFeatureName
-    ```
-3. Commit with clear messages:
-    ```bash
-    git commit -m "Add description of your feature"
-    ```
-4. Push your branch to the remote repository:
-    ```bash
-    git push origin feature/YourFeatureName
-    ```
-5. Open a Pull Request for review.
+Or run produced JARs:
 
-## 📬 Contact
-For any questions or contributions, you can contact:
+```bash
+java -jar server/build/libs/server.jar
+java -jar clients/console/build/libs/console.jar
+```
 
+Client env variables:
+- `AUREUS_HOST` (default: localhost)
+- `AUREUS_PORT` (default: 5000)
+
+### Examples (curl)
+See the Spanish section for curl examples to create, update, get and delete coins.
+
+### Testing and development
+Run tests:
+
+```bash
+./gradlew test
+```
+
+Run only the console module for development:
+
+```bash
+./gradlew :clients:console:run --args="localhost 5000"
+```
+
+### Troubleshooting
+- PropertyValueException on update: send `collectionId` instead of nested `collection` object.
+- 204 No Content on delete: client will present deleted info (fetched before delete) for visual confirmation.
+- Gradle JNA errors on Windows: use `gradlew.bat` from cmd.exe.
+
+### Contributing
+- Fork, branch, commit, PR.
+
+### License
+MIT — see the `LICENSE` file.
+
+### Contact
 - Email: pauetisdev@gmail.com
-- Or open an issue in the repository
 
----  
-Thanks for your interest in Aureus! 🪙🚀
+---
+
+Gracias por usar y contribuir a Aureus. Si quieres que añada una sección de API detallada (con todos los campos y ejemplos de respuesta) o un conjunto de scripts para lanzar entorno local (servidor + cliente), dímelo y lo incluyo.
+
+---
+
+## Detalles técnicos adicionales
+
+### Internals: flujo de petición en el servidor (detallado)
+
+Cuando el servidor recibe una petición HTTP, el flujo interno es:
+
+1. `Server` acepta la conexión TCP y delega a `RequestRouter.handleRequest` pasando los streams.
+2. `RequestRouter` parsea la petición con `HttpRequest.parse`, luego busca la ruta que coincida (method + path).
+3. El handler registrado invoca al `CoinController` o `CollectionController`.
+4. El `Controller` normaliza el JSON (por ejemplo, convierte `collectionId` -> `collection:{id:...}`), valida campos y delega al `CoinService`.
+5. `CoinService` aplica reglas de negocio y llama al repositorio correspondiente (JPA o JDBC) para persistir/consultar.
+6. El repositorio interactúa con la base de datos y retorna el resultado.
+7. El `Controller` construye la respuesta JSON y el `RequestRouter` la envía al `Server`, que la escribe por el socket.
+
+Clases clave y contratos (resumen):
+- `RequestRouter`: mapea rutas a handlers. Maneja errores y convierte excepciones a respuestas HTTP (ej. `EntityNotFoundException` -> 404).
+- `CoinController`: expone `getAllCoins()`, `getCoin(int)`, `createCoin(String body)`, `updateCoin(int,String body)`, `deleteCoin(int)`; normaliza diferentes formas de pasar `collectionId`.
+- `CoinService`: interfaz con métodos `findAll()`, `findById(id)`, `create(coin)`, `create(coin, collectionId)`, `update(coin)`, `delete(id)`.
+
+### Debugging: problemas comunes y cómo rastrearlos (más detallado)
+
+- PropertyValueException en edición (500): esto suele producirse cuando el JSON enviado contiene un objeto `collection` complejo (por ejemplo, un mapa con referencias JPA) que el ORM intenta persistir. Solución:
+  1. Asegúrate de enviar `collectionId` en el body (numérico) o que `collection` sea un objeto simple con `{ "id": <num> }`.
+  2. El cliente `Client.java` ha sido actualizado para preferir `collectionId` y evitar enviar objetos anidados cuando sea posible.
+
+- DELETE responde 204 No Content: si el servidor devuelve 204, el cliente ahora muestra la información de la entidad eliminada que fue recuperada antes de enviar el DELETE, así tendrás confirmación visual.
+
+- Errores 4xx por JSON malformado: `RequestRouter` captura `JsonSyntaxException` y responde 400 Bad Request. Usa `curl -v` para comprobar body y encabezados `Content-Type: application/json`.
+
+- Problemas en Windows con JNA/pty en la salida de Gradle: si ves `UnsatisfiedLinkError` relacionado con `jnidispatch.dll`, intenta correr Gradle desde `cmd.exe` usando `gradlew.bat` o instala/actualiza las utilidades nativas necesarias.
+
+---
+
+### API contract (campos esperados)
+
+Coin (request para POST/PUT — campos permitidos / esperados):
+- coinName: String (requerido)
+- coinYear: Integer (requerido)
+- coinMaterial: String (requerido)
+- coinWeight: Double (requerido)
+- coinDiameter: Double (requerido)
+- estimatedValue: Double (requerido)
+- originCountry: String (requerido)
+- historicalSignificance: String (opcional)
+- description: String (opcional)
+- collectionId: Integer (recomendado) o collection: { id: Integer }
+
+Responses: el servidor devuelve objetos JSON que contienen los mismos campos y el `id` generado en creación.
+
+---
+
+## Developer guide: checklist para PRs y cambios
+
+Antes de abrir un Pull Request considera:
+- Añadir tests que cubran el comportamiento nuevo o corregido (módulos `server` y `clients/console`).
+- Verificar que `clients/console` no envía objetos anidados a menos que la API lo requiera.
+- Actualizar la documentación (`README.md`) con cualquier cambio en los endpoints o en el contrato JSON.
+- Ejecutar `./gradlew build` y `./gradlew test` antes de subir la PR.
+
+---
+

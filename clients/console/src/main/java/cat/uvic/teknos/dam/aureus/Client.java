@@ -28,10 +28,16 @@ public class Client {
 
     // Marca de tiempo de la última actividad (lectura/entrada del usuario/operación de E/S)
     private volatile long lastActivityTime = System.currentTimeMillis();
-    // Scheduler para monitorizar inactividad
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    // Scheduler para monitorizar inactividad (hilo daemon para no bloquear el cierre de la JVM)
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "client-inactivity-monitor");
+        t.setDaemon(true);
+        return t;
+    });
     // Timeout de inactividad configurable (2 minutos por requerimiento)
-    private final long INACTIVITY_TIMEOUT_MS = TimeUnit.MINUTES.toMillis(2);
+    // Temporalmente 10 segundos para pruebas locales; revertir a 2 minutos antes de entrega
+    private final long INACTIVITY_TIMEOUT_MS = TimeUnit.MINUTES.toMillis(2); // 2 minutes inactivity timeout as required
+
     private final AtomicBoolean running = new AtomicBoolean(true);
 
 
@@ -128,24 +134,31 @@ public class Client {
                     }
                 } catch (IOException e) {
                     System.err.println("Error during graceful disconnection: " + e.getMessage());
-                } finally {
-                    System.out.println("Exiting client application.");
-                    shutdown();
-                    System.exit(0);
                 }
+                // Mensaje de salida y limpieza fuera de finally para evitar advertencias
+                System.out.println("Exiting client application.");
+                shutdown();
+                System.exit(0);
             }
         }
     }
 
     // Maneja la salida explícita desde el menú (envía DISCONNECT antes de cerrar)
-    private void handleGracefulExit() throws IOException {
+    private void handleGracefulExit() {
         if (running.compareAndSet(true, false)) {
             System.out.println("\nGoodbye! Closing connection...");
             try {
                 System.out.println("Sending disconnect signal to server...");
-                sendRequest("GET", DISCONNECT_PATH, null);
+                Response response = sendRequest("GET", DISCONNECT_PATH, null);
+                // Esperar y comprobar el ACK del servidor antes de cerrar
+                if (response != null && response.body != null && response.body.trim().equals(DISCONNECT_ACK_BODY)) {
+                    System.out.println("Server acknowledged disconnection: " + response.statusLine);
+                } else {
+                    System.err.println("Server did not send expected acknowledgement for disconnect. Status line: " + (response != null ? response.statusLine : "No response"));
+                }
             } catch (IOException e) {
-                // ignorar errores al notificar
+                // Ignorar errores al notificar; procedemos a apagar el cliente
+                System.err.println("Warning: error while notifying server of disconnect: " + e.getMessage());
             } finally {
                 shutdown();
             }
@@ -235,13 +248,27 @@ public class Client {
         lastActivityTime = System.currentTimeMillis();
     }
 
-    private static String escapeJson(String s) {
-        return s.replace("\\", "\\\\").replace("\"", "\\\"");
-    }
-
     private void printFormattedResponse(Response response) {
-        System.out.println(response.statusLine);
         String body = response.body == null ? "" : response.body.trim();
+        // If HTTP status indicates error, print a concise error message instead of building tables
+        int status = parseStatusCode(response.statusLine);
+        if (status >= 400) {
+            String msg = null;
+            try {
+                if (body.startsWith("{")) {
+                    Map<String,Object> err = mapper.readValue(body, new TypeReference<>(){});
+                    Object maybe = err.get("Error");
+                    if (maybe == null) maybe = err.get("error");
+                    if (maybe == null) maybe = err.get("message");
+                    if (maybe != null) msg = String.valueOf(maybe);
+                }
+            } catch (Exception ignored) {}
+            if (msg == null || msg.isEmpty()) msg = body.isEmpty() ? ("HTTP " + status + " " + response.statusLine) : body;
+            System.out.println("Error: " + msg + " (HTTP " + status + ")");
+            return;
+        }
+        // Success: print status line then body/table
+        System.out.println(response.statusLine);
         if (body.isEmpty()) {
             System.out.println("(no body)");
             return;
@@ -258,6 +285,9 @@ public class Client {
                 for (Map<String, Object> m : list) keys.addAll(m.keySet());
 
                 List<String> headers = new ArrayList<>(keys);
+                // Crear versión visual de los encabezados (p. ej. coinName -> "Coin Name")
+                List<String> displayHeaders = new ArrayList<>();
+                for (String h : headers) displayHeaders.add(formatHeaderKey(h));
                 List<List<String>> rowsData = new ArrayList<>();
                 for (Map<String, Object> m : list) {
                     List<String> row = new ArrayList<>();
@@ -271,13 +301,15 @@ public class Client {
                     }
                     rowsData.add(row);
                 }
-                printAsciiTable(headers, rowsData);
+                printAsciiTable(displayHeaders, rowsData);
                 return;
             } else if (body.startsWith("{")) {
                 Map<String, Object> map = mapper.readValue(body, new TypeReference<>(){});
                 LinkedHashSet<String> keys = new LinkedHashSet<>(map.keySet());
 
                 List<String> headers = new ArrayList<>(keys);
+                List<String> displayHeaders = new ArrayList<>();
+                for (String h : headers) displayHeaders.add(formatHeaderKey(h));
                 List<List<String>> rowsData = new ArrayList<>();
                 List<String> single = new ArrayList<>();
                 for (String h : headers) {
@@ -286,14 +318,63 @@ public class Client {
                     else single.add(formatValue(raw));
                 }
                 rowsData.add(single);
-                printAsciiTable(headers, rowsData);
+                printAsciiTable(displayHeaders, rowsData);
                 return;
             }
         } catch (Exception e) {
-
+            // Evitar catch vacío: registrar un mensaje de ayuda en caso de error durante el formateo
+            System.err.println("Response formatting error: " + e.getMessage());
         }
 
         System.out.println(body);
+    }
+
+    // Convierte las claves JSON en etiquetas legibles para el usuario
+    private String formatHeaderKey(String key) {
+        if (key == null) return "";
+        switch (key) {
+            case "id":
+            case "coinId":
+                return "ID";
+            case "coinName":
+                return "Coin Name";
+            case "coinYear":
+                return "Coin Year";
+            case "coinMaterial":
+                return "Coin Material";
+            case "coinWeight":
+                return "Coin Weight";
+            case "coinDiameter":
+                return "Coin Diameter";
+            case "estimatedValue":
+                return "Estimated Value";
+            case "originCountry":
+                return "Origin Country";
+            case "historicalSignificance":
+            case "description":
+                return "Description";
+            case "collectionId":
+                return "Collection ID";
+            case "collectionName":
+                return "Collection Name";
+            case "collection":
+                return "Collection";
+            default:
+                // Capitalizar palabras separadas por camelCase o snake_case
+                String s = key.replaceAll("_", " ");
+                // Insert space before capital letters (camelCase to words)
+                s = s.replaceAll("([a-z])([A-Z])", "$1 $2");
+                String[] parts = s.split("\\s+");
+                StringBuilder out = new StringBuilder();
+                for (int i = 0; i < parts.length; i++) {
+                    String p = parts[i];
+                    if (p.isEmpty()) continue;
+                    out.append(Character.toUpperCase(p.charAt(0)));
+                    if (p.length() > 1) out.append(p.substring(1));
+                    if (i < parts.length - 1) out.append(' ');
+                }
+                return out.toString();
+        }
     }
 
     private String formatValue(Object val) {
@@ -410,6 +491,8 @@ public class Client {
     }
 
     private void printAsciiTable(List<String> headers, List<List<String>> rows) {
+        // Add spacing before table for readability
+        System.out.println();
         final int MAX_COL_WIDTH = 30;
 
         int cols = headers.size();
@@ -453,6 +536,8 @@ public class Client {
         }
 
         System.out.println(sep.toString());
+        // Add spacing after table
+        System.out.println();
     }
 
     private String formatCell(String s, int width, boolean rightAlign) {
@@ -539,6 +624,9 @@ public class Client {
 
     private void getCoinById(Scanner sc) {
         try {
+            // Show available IDs before asking for the ID
+            System.out.println();
+            showAvailableIds();
             System.out.print("Enter coin ID: ");
             String id = sc.nextLine().trim();
             if (id.isEmpty()) {
@@ -546,32 +634,138 @@ public class Client {
                 return;
             }
             Response r = sendRequest("GET", "/coins/" + id, null);
+            int code = parseStatusCode(r.statusLine);
+            if (code >= 400) {
+                // Try to extract a helpful error message from the body if it's JSON
+                String body = r.body == null ? "" : r.body.trim();
+                String msg = null;
+                try {
+                    if (body.startsWith("{")) {
+                        Map<String,Object> err = mapper.readValue(body, new TypeReference<>(){});
+                        Object maybe = err.get("Error");
+                        if (maybe == null) maybe = err.get("error");
+                        if (maybe == null) maybe = err.get("message");
+                        if (maybe != null) msg = String.valueOf(maybe);
+                    }
+                } catch (Exception ignored) {}
+                if (msg == null || msg.isEmpty()) msg = (r.body == null || r.body.trim().isEmpty()) ? r.statusLine : r.body.trim();
+                System.out.println("Error: " + msg + " (HTTP " + code + ")");
+                return;
+            }
             printFormattedResponse(r);
         } catch (Exception e) {
             System.out.println("Error fetching coin: " + e.getMessage());
         }
     }
 
+    private void showAvailableCollections() {
+        try {
+            Response response = sendRequest("GET", "/collections", null);
+            String body = response.body == null ? "" : response.body.trim();
+            if (body.isEmpty()) {
+                System.out.println("(no collections)");
+                return;
+            }
+            if (!body.startsWith("[")) {
+                Map<String, Object> single = mapper.readValue(body, new TypeReference<>(){});
+                Object id = single.get("id");
+                Object name = single.get("collectionName");
+                if (name == null) name = single.get("name");
+                System.out.println("Available collections:");
+                System.out.println("ID | Name");
+                System.out.println((id == null ? "" : id.toString()) + " | " + (name == null ? "" : name.toString()));
+                return;
+            }
+
+            List<Map<String, Object>> list = mapper.readValue(body, new TypeReference<>(){});
+            if (list.isEmpty()) {
+                System.out.println("(no collections)");
+                return;
+            }
+            List<String> headers = Arrays.asList("ID", "Name");
+            List<List<String>> rows = new ArrayList<>();
+            for (Map<String, Object> m : list) {
+                Object id = m.get("id");
+                Object name = m.get("collectionName");
+                if (name == null) name = m.get("name");
+                rows.add(Arrays.asList(id == null ? "" : String.valueOf(id), name == null ? "" : String.valueOf(name)));
+            }
+            printAsciiTable(headers, rows);
+        } catch (Exception e) {
+            System.out.println("Could not fetch collection list: " + e.getMessage());
+        }
+    }
+
     private void createCoin(Scanner sc) {
         try {
-            System.out.print("coinName: ");
-            String name = sc.nextLine().trim();
-            System.out.print("year (numeric): ");
+            System.out.println();
+            System.out.print("Coin Name: ");
+            String name = toTitleCase(sc.nextLine().trim());
+
+            System.out.print("Coin Year (numeric): ");
             String yearStr = sc.nextLine().trim();
-            System.out.print("collectionId (numeric): ");
+
+            System.out.print("Coin Material: ");
+            String material = sc.nextLine().trim();
+
+            System.out.print("Coin Weight (numeric, e.g. 12.5): ");
+            String weightStr = sc.nextLine().trim();
+
+            System.out.print("Coin Diameter (numeric, e.g. 20.0): ");
+            String diameterStr = sc.nextLine().trim();
+
+            System.out.print("Estimated Value (numeric, e.g. 100.0): ");
+            String valueStr = sc.nextLine().trim();
+
+            System.out.print("Origin Country: ");
+            String origin = sc.nextLine().trim();
+
+            System.out.print("Description (optional): ");
+            String historical = sc.nextLine().trim();
+
+            // Show available collections before asking for collectionId
+            System.out.println();
+            showAvailableCollections();
+
+            System.out.print("Collection ID: ");
             String collStr = sc.nextLine().trim();
 
             Map<String,Object> payload = new LinkedHashMap<>();
             if (!name.isEmpty()) payload.put("coinName", name);
             if (!yearStr.isEmpty()) {
-                try { payload.put("year", Integer.parseInt(yearStr)); } catch (NumberFormatException ignored) {}
+                try { payload.put("coinYear", Integer.parseInt(yearStr)); } catch (NumberFormatException ignored) {}
+            }
+            if (!material.isEmpty()) payload.put("coinMaterial", material);
+            if (!weightStr.isEmpty()) {
+                try { payload.put("coinWeight", Double.parseDouble(weightStr)); } catch (NumberFormatException ignored) {}
+            }
+            if (!diameterStr.isEmpty()) {
+                try { payload.put("coinDiameter", Double.parseDouble(diameterStr)); } catch (NumberFormatException ignored) {}
+            }
+            if (!valueStr.isEmpty()) {
+                try { payload.put("estimatedValue", Double.parseDouble(valueStr)); } catch (NumberFormatException ignored) {}
+            }
+            if (!origin.isEmpty()) payload.put("originCountry", origin);
+            if (!historical.isEmpty()) {
+                payload.put("historicalSignificance", historical);
+                payload.put("description", historical);
             }
             if (!collStr.isEmpty()) {
                 try { payload.put("collectionId", Integer.parseInt(collStr)); } catch (NumberFormatException ignored) {}
             }
+
             String body = mapper.writeValueAsString(payload);
             Response r = sendRequest("POST", "/coins", body);
+            // Print server response (created coin or message)
             printFormattedResponse(r);
+
+            // If POST was successful but server did not return a body with new coin details,
+            // try to fetch created coin if the response contains an "id" field or Location header is not available.
+            int code = parseStatusCode(r.statusLine);
+            if (code >= 200 && code < 300) {
+                // If response body empty or not JSON object, we won't automatically fetch (to avoid guessing id).
+                // The server usually returns created entity; if not, user can list coins to see it.
+            }
         } catch (Exception e) {
             System.out.println("Error creating coin: " + e.getMessage());
         }
@@ -579,36 +773,114 @@ public class Client {
 
     private void updateCoin(Scanner sc) {
         try {
+            // Show available IDs before asking for the ID
+            System.out.println();
+            showAvailableIds();
             System.out.print("Enter coin ID to update: ");
             String id = sc.nextLine().trim();
             if (id.isEmpty()) {
                 System.out.println("ID required.");
                 return;
             }
-            System.out.print("coinName (leave blank to keep): ");
-            String name = sc.nextLine().trim();
-            System.out.print("year (leave blank to keep): ");
+
+            // Get existing entity
+            Response getResp = sendRequest("GET", "/coins/" + id, null);
+            int getCode = parseStatusCode(getResp.statusLine);
+            if (getCode >= 400) {
+                String body = getResp.body == null ? "" : getResp.body.trim();
+                String msg = null;
+                try {
+                    if (body.startsWith("{")) {
+                        Map<String,Object> err = mapper.readValue(body, new TypeReference<>(){});
+                        Object maybe = err.get("Error");
+                        if (maybe == null) maybe = err.get("error");
+                        if (maybe == null) maybe = err.get("message");
+                        if (maybe != null) msg = String.valueOf(maybe);
+                    }
+                } catch (Exception ignored) {}
+                if (msg == null || msg.isEmpty()) msg = body.isEmpty() ? getResp.statusLine : body;
+                System.out.println("Error fetching existing coin: " + msg + " (HTTP " + getCode + ")");
+                return;
+            }
+
+            String getBody = getResp.body == null ? "" : getResp.body.trim();
+            Map<String,Object> existing = mapper.readValue(getBody, new TypeReference<>(){});
+            System.out.println("Current coin data:");
+            printFormattedResponse(getResp);
+
+            // Ask user for new values
+            System.out.print("Coin Name (leave blank to keep): ");
+            String name = toTitleCase(sc.nextLine().trim());
+
+            System.out.print("Coin Year (numeric, leave blank to keep): ");
             String yearStr = sc.nextLine().trim();
-            System.out.print("collectionId (leave blank to keep): ");
+
+            System.out.print("Coin Material (leave blank to keep): ");
+            String material = sc.nextLine().trim();
+
+            System.out.print("Coin Weight (numeric, leave blank to keep, e.g. 12.5): ");
+            String weightStr = sc.nextLine().trim();
+
+            System.out.print("Coin Diameter (numeric, leave blank to keep, e.g. 20.0): ");
+            String diameterStr = sc.nextLine().trim();
+
+            System.out.print("Estimated Value (numeric, leave blank to keep, e.g. 100.0): ");
+            String valueStr = sc.nextLine().trim();
+
+            System.out.print("Origin Country (leave blank to keep): ");
+            String origin = sc.nextLine().trim();
+
+            System.out.print("Description (leave blank to keep): ");
+            String historical = sc.nextLine().trim();
+
+            System.out.println();
+            showAvailableCollections();
+
+            System.out.print("Collection ID (numeric, leave blank to keep): ");
             String collStr = sc.nextLine().trim();
 
-            Map<String,Object> payload = new LinkedHashMap<>();
+            // Build payload from allowed primitive fields only (avoid sending nested objects)
+            Map<String,Object> payload = extractExistingFieldsForUpdate(existing);
+
             if (!name.isEmpty()) payload.put("coinName", name);
             if (!yearStr.isEmpty()) {
-                try { payload.put("year", Integer.parseInt(yearStr)); } catch (NumberFormatException ignored) {}
+                try { payload.put("coinYear", Integer.parseInt(yearStr)); } catch (NumberFormatException ignored) {}
+            }
+            if (!material.isEmpty()) payload.put("coinMaterial", material);
+            if (!weightStr.isEmpty()) {
+                try { payload.put("coinWeight", Double.parseDouble(weightStr)); } catch (NumberFormatException ignored) {}
+            }
+            if (!diameterStr.isEmpty()) {
+                try { payload.put("coinDiameter", Double.parseDouble(diameterStr)); } catch (NumberFormatException ignored) {}
+            }
+            if (!valueStr.isEmpty()) {
+                try { payload.put("estimatedValue", Double.parseDouble(valueStr)); } catch (NumberFormatException ignored) {}
+            }
+            if (!origin.isEmpty()) payload.put("originCountry", origin);
+            if (!historical.isEmpty()) {
+                payload.put("historicalSignificance", historical);
+                payload.put("description", historical);
             }
             if (!collStr.isEmpty()) {
                 try { payload.put("collectionId", Integer.parseInt(collStr)); } catch (NumberFormatException ignored) {}
             }
 
-            if (payload.isEmpty()) {
-                System.out.println("No updates provided.");
-                return;
-            }
-
             String body = mapper.writeValueAsString(payload);
             Response r = sendRequest("PUT", "/coins/" + id, body);
-            printFormattedResponse(r);
+            int code = parseStatusCode(r.statusLine);
+
+            if (code >= 200 && code < 300) {
+                // After successful update, fetch and display the updated coin to guarantee user sees latest data
+                try {
+                    Response refreshed = sendRequest("GET", "/coins/" + id, null);
+                    printFormattedResponse(refreshed);
+                } catch (Exception e) {
+                    // If refresh fails, show the original PUT response
+                    printFormattedResponse(r);
+                }
+            } else {
+                printFormattedResponse(r);
+            }
         } catch (Exception e) {
             System.out.println("Error updating coin: " + e.getMessage());
         }
@@ -616,16 +888,120 @@ public class Client {
 
     private void deleteCoin(Scanner sc) {
         try {
+            // Show available IDs before asking for the ID
+            System.out.println();
+            showAvailableIds();
             System.out.print("Enter coin ID to delete: ");
             String id = sc.nextLine().trim();
             if (id.isEmpty()) {
                 System.out.println("ID required.");
                 return;
             }
+
+            // Validate existencia del coin sin volver a mostrar la lista en caso de error
+            Response existingResp;
+            try {
+                Response check = sendRequest("GET", "/coins/" + id, null);
+                int code = parseStatusCode(check.statusLine);
+                if (code != 200) {
+                    String body = check.body == null ? "" : check.body.trim();
+                    String msg = null;
+                    try {
+                        if (body.startsWith("{")) {
+                            Map<String,Object> err = mapper.readValue(body, new TypeReference<>(){});
+                            Object maybe = err.get("Error");
+                            if (maybe == null) maybe = err.get("error");
+                            if (maybe == null) maybe = err.get("message");
+                            if (maybe != null) msg = String.valueOf(maybe);
+                        }
+                    } catch (Exception ignored) {}
+                    if (msg == null || msg.isEmpty()) msg = "Coin ID " + id + " not found.";
+                    System.out.println("Error: " + msg + " (HTTP " + code + ")");
+                    return;
+                }
+                existingResp = check; // guardar los datos del coin existente para mostrar después de eliminar con éxito
+            } catch (IOException ioe) {
+                System.out.println("Error checking coin existence: " + ioe.getMessage());
+                return;
+            }
+
+            // Confirmation (English)
+            System.out.print("Are you sure you want to delete the coin with ID " + id + "? (y/N): ");
+            String confirm = sc.nextLine().trim();
+            if (!confirm.equalsIgnoreCase("y") && !confirm.equalsIgnoreCase("yes")) {
+                System.out.println("Deletion cancelled.");
+                return;
+            }
+
             Response r = sendRequest("DELETE", "/coins/" + id, null);
-            printFormattedResponse(r);
+            int code = parseStatusCode(r.statusLine);
+            if (code >= 200 && code < 300) {
+                // Éxito: mostrar la tabla con la información que se eliminó (de existingResp) y imprimir la confirmación
+                printFormattedResponse(existingResp);
+                System.out.println("Coin with ID " + id + " deleted successfully.");
+            } else {
+                printFormattedResponse(r);
+            }
         } catch (Exception e) {
             System.out.println("Error deleting coin: " + e.getMessage());
+        }
+    }
+
+    // Helper: build payload for update from existing map but only include allowed primitive fields (no nested objects)
+    private Map<String,Object> extractExistingFieldsForUpdate(Map<String,Object> existing) {
+        Map<String,Object> out = new LinkedHashMap<>();
+        if (existing == null) return out;
+        putIfPresent(out, "coinName", existing.get("coinName"));
+        putIfPresent(out, "coinYear", existing.get("coinYear"));
+        putIfPresent(out, "coinMaterial", existing.get("coinMaterial"));
+        putIfPresent(out, "coinWeight", existing.get("coinWeight"));
+        putIfPresent(out, "coinDiameter", existing.get("coinDiameter"));
+        putIfPresent(out, "estimatedValue", existing.get("estimatedValue"));
+        putIfPresent(out, "originCountry", existing.get("originCountry"));
+        putIfPresent(out, "historicalSignificance", existing.get("historicalSignificance"));
+        putIfPresent(out, "description", existing.get("description"));
+
+        // collectionId may be present directly or inside a 'collection' nested object
+        Object collId = existing.get("collectionId");
+        if (collId == null) {
+            Object coll = existing.get("collection");
+            if (coll instanceof Map) {
+                Object cid = ((Map<?,?>)coll).get("id");
+                if (cid == null) cid = ((Map<?,?>)coll).get("collectionId");
+                collId = cid;
+            }
+        }
+        if (collId != null) out.put("collectionId", collId);
+        return out;
+    }
+
+    private void putIfPresent(Map<String,Object> out, String key, Object val) {
+        if (val != null) out.put(key, val);
+    }
+
+    // Helper: convert a string to Title Case (first letter of each word uppercase)
+    private String toTitleCase(String s) {
+        if (s == null || s.isEmpty()) return s;
+        String[] parts = s.trim().toLowerCase().split("\\s+");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < parts.length; i++) {
+            String p = parts[i];
+            if (p.isEmpty()) continue;
+            sb.append(Character.toUpperCase(p.charAt(0)));
+            if (p.length() > 1) sb.append(p.substring(1));
+            if (i < parts.length - 1) sb.append(' ');
+        }
+        return sb.toString();
+    }
+
+    private int parseStatusCode(String statusLine) {
+        if (statusLine == null) return -1;
+        String[] parts = statusLine.split(" ");
+        if (parts.length < 2) return -1;
+        try {
+            return Integer.parseInt(parts[1]);
+        } catch (NumberFormatException e) {
+            return -1;
         }
     }
 }
