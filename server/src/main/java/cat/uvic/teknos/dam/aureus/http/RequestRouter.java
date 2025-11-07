@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -35,6 +36,12 @@ public class RequestRouter {
     private final CoinController coinController;
     private final CollectionController collectionController;
 
+    // Constantes para el protocolo de desconexión
+    public static final String DISCONNECT_PATH = "/disconnect";
+    public static final String DISCONNECT_ACK_REASON = "ACK";
+    public static final String DISCONNECT_ACK_BODY = "DISCONNECT_ACK";
+
+
     public RequestRouter(CoinController coinController, CollectionController collectionController) {
         this.coinController = coinController;
         this.collectionController = collectionController;
@@ -49,6 +56,13 @@ public class RequestRouter {
         // Rutas estáticas (/coins)
         registerRoute("GET", "/coins", null, (req, var) -> handleGetAllCoins());
         registerRoute("POST", "/coins", null, (req, var) -> handleCreateCoin(req));
+
+        // Ruta de desconexión - la lógica especial se maneja en handleRequest
+        registerRoute("GET", DISCONNECT_PATH, null, (req, var) -> {
+            // Este handler es un placeholder. La lógica real (ACK + delay) está en handleRequest.
+            // Si llega aquí (lo que no debería pasar en el flujo optimizado), simplemente devuelve el ACK.
+            return createTextResponseEntity(200, DISCONNECT_ACK_REASON, DISCONNECT_ACK_BODY);
+        });
 
         // Rutas para collections (si hay controller)
         if (collectionController != null) {
@@ -89,25 +103,47 @@ public class RequestRouter {
             HttpRequest request = HttpRequest.parse(inputStream);
             System.out.println("Router: " + request.getMethod() + " " + request.getPath());
 
-            response = route(request);
+            // --- MANEJO ESPECIAL DEL PROTOCOLO DE DESCONEXIÓN ---
+            if (request.getMethod().equalsIgnoreCase("GET") && request.getPath().equals(DISCONNECT_PATH)) {
+                System.out.println("Router: Received disconnect request. Sending acknowledgement...");
+
+                // 1. Enviar acuse de recibo
+                ResponseEntity ackResponse = createTextResponseEntity(200, DISCONNECT_ACK_REASON, DISCONNECT_ACK_BODY);
+                ackResponse.writeTo(outputStream); // escribir inmediatamente
+                outputStream.flush(); // asegurar la entrega
+
+                // 2. Esperar 1 segundo
+                System.out.println("Router: Waiting 1 second before allowing connection close...");
+                try {
+                    Thread.sleep(1000); // esperar 1 segundo (1000 ms)
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt(); // restaurar estado interrumpido
+                }
+
+                // 3. El cierre lo gestiona el bloque finally en Server.handleClientConnection
+                return; // salir de handleRequest inmediatamente
+            }
+            // --- FIN MANEJO ESPECIAL DE DESCONEXIÓN ---
+
+            response = route(request); // Rutas normales para peticiones distintas de /disconnect
 
         } catch (HttpException e) {
-            // 4xx errores de cliente (ej: ruta no encontrada, método no permitido)
+            // 4xx errores del cliente (p.ej. recurso no encontrado, método no permitido)
             response = createErrorResponse(e.getStatusCode(), e.getReasonPhrase(), e.getMessage());
         } catch (EntityNotFoundException e) {
             // Excepción de negocio, mapeada a 404 HTTP
             response = createErrorResponse(404, "Not Found", e.getMessage());
         } catch (JsonSyntaxException e) {
-            // Error en el cuerpo JSON (POST/PUT)
+            // Error en JSON del body
             response = createErrorResponse(400, "Bad Request", "JSON body is malformed.");
         } catch (Exception e) {
-            // Cualquier otro error, incluyendo problemas de I/O o excepciones no controladas
+            // Cualquier otro error no previsto
             response = createErrorResponse(500, "Internal Server Error", "An unexpected server error occurred: " + e.getMessage());
             // Reemplazar printStackTrace por un logging simple
             System.err.println("Unexpected error in router: " + e.getMessage());
             e.printStackTrace(System.err);
         } finally {
-            // Escribir la respuesta HTTP de vuelta al stream TCP
+            // Escribir la respuesta HTTP de vuelta al stream TCP para peticiones normales
             if (response != null) {
                 response.writeTo(outputStream);
             }
@@ -213,6 +249,15 @@ public class RequestRouter {
         headers.put("Content-Length", String.valueOf(bodyBytes.length));
         return new ResponseEntity(status, reason, headers, bodyBytes);
     }
+
+    private ResponseEntity createTextResponseEntity(int status, String reason, String body) {
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Content-Type", "text/plain");
+        byte[] bodyBytes = body == null ? new byte[0] : body.getBytes(StandardCharsets.UTF_8);
+        headers.put("Content-Length", String.valueOf(bodyBytes.length));
+        return new ResponseEntity(status, reason, headers, bodyBytes);
+    }
+
 
     private ResponseEntity createEmptyResponseEntity(int status, String reason) {
         Map<String, String> headers = new HashMap<>();
