@@ -34,6 +34,8 @@ public class Client {
     private final long INACTIVITY_TIMEOUT_MS = TimeUnit.MINUTES.toMillis(2);
     private final AtomicBoolean running = new AtomicBoolean(true);
 
+
+
     private static final String DISCONNECT_PATH = "/disconnect";
     private static final String DISCONNECT_ACK_BODY = "DISCONNECT_ACK";
 
