@@ -20,4 +20,5 @@ dependencies {
     implementation("com.github.freva:ascii-table:1.8.0")
     implementation("com.athaydes.rawhttp:rawhttp-core:2.6.0")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.20.0")
+    implementation(project(":utilities"))
 }

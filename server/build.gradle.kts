@@ -24,6 +24,7 @@ dependencies {
     implementation(project(":model"))
     implementation(project(":repositories"))
     implementation(project(":jpa"))
+    implementation(project(":utilities"))
 
     // API de JPA (necesaria porque DependencyInjector usa EntityManager)
     implementation("jakarta.persistence:jakarta.persistence-api:3.2.0")

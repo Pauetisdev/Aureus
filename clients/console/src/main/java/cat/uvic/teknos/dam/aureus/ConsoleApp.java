@@ -7,10 +7,6 @@ package cat.uvic.teknos.dam.aureus;
  * - Read host and port from environment variables or command-line arguments.
  * - Instantiate the client and start its main loop.
  *
- * Environment variables:
- * - AUREUS_HOST (default: "localhost")
- * - AUREUS_PORT (default: 5000)
- *
  * Command-line args:
  * - args[0]: host (overrides AUREUS_HOST)
  * - args[1]: port (overrides AUREUS_PORT)

@@ -1,5 +1,6 @@
 package cat.uvic.teknos.dam.aureus;
 
+import cat.uvic.teknos.dam.aureus.security.CryptoUtils;
 import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
@@ -9,6 +10,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * when the client has been inactive for a configured timeout.</p>
  */
 public class Client {
+    private static final Logger LOGGER = Logger.getLogger(Client.class.getName());
     private final String host;
     private final int port;
     private final ObjectMapper mapper = new ObjectMapper();
@@ -196,6 +200,11 @@ public class Client {
                 byte[] bodyBytes = body.getBytes(StandardCharsets.UTF_8);
                 sb.append("Content-Type: application/json\r\n");
                 sb.append("Content-Length: ").append(bodyBytes.length).append("\r\n");
+                // Add X-Body-Hash header for message integrity
+                String bodyHash = CryptoUtils.hash(bodyBytes);
+                // Debug logging: outgoing body hash
+                LOGGER.log(Level.FINE, "Client: sending body hash = {0}", bodyHash);
+                sb.append("X-Body-Hash").append(": ").append(bodyHash).append("\r\n");
                 sb.append("\r\n");
                 reqOut.write(sb.toString().getBytes(StandardCharsets.UTF_8));
                 reqOut.write(bodyBytes);
@@ -215,6 +224,7 @@ public class Client {
             if (statusLine == null) throw new IOException("No response from server");
             String line;
             int contentLength = 0;
+            String respBodyHash = null;
             while ((line = reader.readLine()) != null && !line.isEmpty()) {
                 String[] headerParts = line.split(":", 2);
                 if (headerParts.length == 2) {
@@ -222,6 +232,9 @@ public class Client {
                     String value = headerParts[1].trim();
                     if (name.equalsIgnoreCase("Content-Length")) {
                         try { contentLength = Integer.parseInt(value); } catch (NumberFormatException ignored) {}
+                    }
+                    if (name.equalsIgnoreCase("X-Body-Hash")) {
+                        respBodyHash = value;
                     }
                 }
             }
@@ -233,6 +246,17 @@ public class Client {
                 read += r;
             }
             String bodyResp = new String(buf, 0, read);
+
+            // Verify response body hash if present
+            if (contentLength > 0) {
+                String computedRespHash = CryptoUtils.hash(bodyResp);
+                // Debug logging: response hashes
+                LOGGER.log(Level.FINE, "Client: received response body hash header = {0}", (respBodyHash == null ? "<missing>" : respBodyHash));
+                LOGGER.log(Level.FINE, "Client: computed response body hash = {0}", computedRespHash);
+                if (respBodyHash == null || !respBodyHash.equalsIgnoreCase(computedRespHash)) {
+                    throw new IOException("Invalid response body hash");
+                }
+            }
 
             lastActivityTime = System.currentTimeMillis();
 

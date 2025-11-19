@@ -1,27 +1,38 @@
-# Aureus
+```text
+ █████╗   ██╗   ██╗  ██████╗   ███████╗  ██╗   ██╗  ███████╗
+██╔══██╗  ██║   ██║  ██╔══██╗  ██╔════╝  ██║   ██║  ██╔════╝
+███████║  ██║   ██║  ██████╔╝  █████╗    ██║   ██║  ███████╗
+██╔══██║  ██║   ██║  ██╔══██╗  ██╔══╝    ██║   ██║  ╚════██║
+██║  ██║  ╚██████╔╝  ██║  ██║  ███████╗  ╚██████╔╝  ███████║
+╚═╝  ╚═╝   ╚═════╝   ╚═╝  ╚═╝  ╚══════╝   ╚═════╝   ╚══════╝
+```
 
 Aureus es un proyecto modular en Java para la gestión de colecciones de monedas (coins). Está diseñado con una arquitectura cliente‑servidor y módulos separados para persistencia (JPA y JDBC), modelo, repositorios y utilidades.
 
 ---
 
 Índice (ES / EN)
-- Resumen
-- Arquitectura y módulos
-- Modelo de datos (entidades principales)
-- API HTTP (endpoints más relevantes)
-- Cliente de consola: comportamiento y UX
-- Cómo construir y ejecutar (servidor y cliente)
-- Configuración de la base de datos
-- Ejemplos prácticos (curl)
-- Pruebas y desarrollo
-- Errores comunes y solución rápida
-- Cómo contribuir
-- Licencia y contacto
+
+| Español | English |
+|---|---|
+| [Resumen](#es-resumen) | [Summary](#en-summary) |
+| [Arquitectura y módulos](#es-arquitectura) | [Architecture and modules](#en-architecture) |
+| [Modelo de datos (entidades principales)](#es-modelo-datos) | [Data model (main entities)](#en-data-model) |
+| [API HTTP (endpoints más relevantes)](#es-api-http) | [HTTP API (key endpoints)](#en-http-api) |
+| [Cliente de consola: comportamiento y UX](#es-cliente-ux) | [Console client: behavior and UX](#en-console-ux) |
+| [Cómo construir y ejecutar (servidor y cliente)](#es-como-construir) | [Build & run](#en-build-run) |
+| [Configuración de la base de datos](#es-config-db) | [Examples (curl)](#en-examples) |
+| [Ejemplos prácticos (curl)](#es-ejemplos-curl) | [Testing and development](#en-testing) |
+| [Pruebas y desarrollo](#es-pruebas) | [Troubleshooting](#en-troubleshooting) |
+| [Errores comunes y solución rápida](#es-errores) | [Contributing](#en-contributing) |
+| [Cómo contribuir](#es-como-contribuir) | [License / Contact](#en-license-contact) |
+| [Licencia y contacto](#es-licencia-contacto) |  |
 
 ---
 
 ## 🇪🇸 Español
 
+<a id="es-resumen"></a>
 ### Resumen
 Aureus es una aplicación Java modular que proporciona:
 - Un servidor HTTP simple que expone una API REST‑like para gestionar monedas y colecciones.
@@ -29,6 +40,7 @@ Aureus es una aplicación Java modular que proporciona:
 
 El proyecto está organizado para facilitar el cambio entre implementaciones de persistencia (JPA o JDBC) y para favorecer la separación de responsabilidades.
 
+<a id="es-arquitectura"></a>
 ### Arquitectura y módulos
 Breve visión de los módulos más importantes:
 - `server`: Implementa el servidor HTTP y la lógica de negocio expuesta vía endpoints.
@@ -42,6 +54,7 @@ Diagrama conceptual (simplificado):
 
 Client (console) <--HTTP--> Server <--repositories--> Persistence (JPA / JDBC) <---> Database
 
+<a id="es-modelo-datos"></a>
 ### Modelo de datos (entidades principales)
 A continuación se indican los campos principales que maneja la API para `Coin` y `Collection`. Pueden variar según la implementación, pero sirven como guía.
 
@@ -65,6 +78,7 @@ Collection (ejemplo de campos):
 
 > Nota: el cliente de consola está diseñado para enviar `collectionId` en POST/PUT en lugar del objeto anidado `collection` para evitar errores en el servidor (PropertyValueException).
 
+<a id="es-api-http"></a>
 ### API HTTP (endpoints más relevantes)
 Estos endpoints son los que utiliza el cliente de consola y los ejemplos curl abajo:
 - GET /coins — lista todas las monedas (array JSON)
@@ -78,16 +92,21 @@ Estos endpoints son los que utiliza el cliente de consola y los ejemplos curl ab
 
 Cada respuesta sigue un patrón HTTP estándar: códigos 2xx para éxito, 4xx/5xx para errores. En particular, DELETE suele responder 204 No Content; el cliente captura la información previa y la muestra al usuario para confirmación.
 
+<a id="es-cliente-ux"></a>
 ### Cliente de consola: comportamiento y UX
 El cliente (`clients/console`) ofrece un menú interactivo con opciones para listar, obtener por id, crear, actualizar y eliminar monedas.
 Puntos clave de la UX del cliente:
-- Antes de pedir un ID para operaciones GET/UPDATE/DELETE, el cliente muestra una tabla compacta con los IDs y nombres disponibles (para que el usuario pueda escoger más fácilmente).
-- Si el usuario introduce un ID que no existe, el cliente muestra un mensaje de error conciso y no vuelve a imprimir la lista completa.
-- En `create` y `update`: cuando se pide `Collection ID`, el cliente muestra la tabla de colecciones (id / name) — ¡solo la tabla de colecciones! — (antes había confusión entre tablas).
-- Al crear/actualizar, el campo de nombre (`coinName`) se normaliza a Title Case (primera letra en mayúscula de cada palabra).
-- En `update`, el cliente obtiene la entidad existente, permite editar campos (dejando en blanco para mantener el valor) y después de un PUT exitoso realiza un GET para mostrar la moneda actualizada.
-- En `delete`, antes de eliminar, el cliente solicita confirmación (en inglés). Si la eliminación es exitosa, muestra la tabla con la información del registro eliminado y un mensaje de confirmación.
 
+| Funcionalidad | Detalle |
+|---|---|
+| Antes de pedir un ID para operaciones GET/UPDATE/DELETE | El cliente muestra una tabla compacta con los IDs y nombres disponibles (para que el usuario pueda escoger más fácilmente). |
+| Manejo de ID no existente | Si el usuario introduce un ID que no existe, el cliente muestra un mensaje de error conciso y no vuelve a imprimir la lista completa. |
+| Selección de Collection ID en create/update | En `create` y `update`: cuando se pide `Collection ID`, el cliente muestra la tabla de colecciones (id / name) — ¡solo la tabla de colecciones! — (antes había confusión entre tablas). |
+| Normalización de nombre | Al crear/actualizar, el campo de nombre (`coinName`) se normaliza a Title Case (primera letra en mayúscula de cada palabra). |
+| Flujo de actualización (update) | En `update`, el cliente obtiene la entidad existente, permite editar campos (dejando en blanco para mantener el valor) y después de un PUT exitoso realiza un GET para mostrar la moneda actualizada. |
+| Confirmación en delete | En `delete`, antes de eliminar, el cliente solicita confirmación (en inglés). Si la eliminación es exitosa, muestra la tabla con la información del registro eliminado y un mensaje de confirmación. |
+
+<a id="es-como-construir"></a>
 ### Cómo construir y ejecutar
 Requisitos: JDK 21+ y Gradle wrapper están incluidos.
 
@@ -136,11 +155,13 @@ Variables de entorno que reconoce el cliente:
 - `AUREUS_HOST` — host del servidor (default `localhost`)
 - `AUREUS_PORT` — puerto del servidor (default `5000`)
 
+<a id="es-config-db"></a>
 ### Configuración de la base de datos
 El proyecto contiene dos implementaciones de persistencia (JPA y JDBC). Revisa `jpa` y `jdbc` para ver cómo se configuran las `datasource.properties` (hay ejemplos en `app/bin/test` y `app/bin/main` o en `docs/database`).
 
 Si usas JPA, asegúrate de que las propiedades de `persistence.xml` o la configuración del EntityManager apunten a la base de datos correcta (URL, usuario, contraseña). Para pruebas locales puedes usar una base de datos en memoria (H2) si está configurada.
 
+<a id="es-ejemplos-curl"></a>
 ### Ejemplos prácticos (curl)
 Crear una moneda (POST):
 
@@ -187,6 +208,7 @@ Eliminar una moneda (DELETE):
 curl -v -X DELETE http://localhost:5000/coins/123
 ```
 
+<a id="es-pruebas"></a>
 ### Pruebas y desarrollo
 - Ejecutar pruebas unitarias y de integración con Gradle:
 
@@ -204,23 +226,21 @@ gradlew.bat test
 ./gradlew :clients:console:run --args="localhost 5000"
 ```
 
+<a id="es-errores"></a>
 ### Errores comunes y solución rápida
 - PropertyValueException al editar (500): suele ocurrir si se envía un objeto `collection` anidado en lugar de `collectionId` en el JSON del PUT/POST. Solución: enviar solo `collectionId` o campos primitivos (el cliente ya evita esto).
 - HTTP 204 No Content en delete: el servidor puede devolver 204; el cliente ahora muestra la información previa al DELETE para que tengas una confirmación visual.
 - ID no existente: si introduces un ID inválido en el cliente, verás un mensaje de error expresivo (por ejemplo: "Error: Coin not found with id 1212 (HTTP 404)").
 - Problemas de JNA/pty en Windows durante compilación: si ves errores nativos en la salida del build en el IDE, intenta compilar desde cmd.exe con `gradlew.bat`.
 
-### Buenas prácticas para desarrolladores
-- Mantén las modificaciones de la API compatibles: no cambies los campos esperados por el cliente sin versionado.
-- Evita enviar objetos anidados desde el cliente salvo que la API lo pida explícitamente; prefiere IDs y campos primitivos.
-- Añade tests y documentación cuando modifiques endpoints.
-
+<a id="es-como-contribuir"></a>
 ### Cómo contribuir
 1. Haz fork del repositorio.
 2. Crea una rama para tu feature: `git checkout -b feature/mi-feature`.
 3. Haz cambios y commits claros.
 4. Envía un Pull Request para revisión.
 
+<a id="es-licencia-contacto"></a>
 ### Licencia
 MIT — consulta el archivo `LICENSE`.
 
@@ -231,9 +251,11 @@ MIT — consulta el archivo `LICENSE`.
 
 ## 🇬🇧 English
 
+<a id="en-summary"></a>
 ### Summary
 Aureus is a modular Java project to manage coin collections. It provides a simple HTTP server (REST‑like API) and a console client (CLI) to perform CRUD operations on coins and collections.
 
+<a id="en-architecture"></a>
 ### Architecture and modules
 - `server`: HTTP server exposing endpoints (GET/POST/PUT/DELETE for coins and collections).
 - `clients/console`: Interactive console client that communicates with the server.
@@ -241,6 +263,7 @@ Aureus is a modular Java project to manage coin collections. It provides a simpl
 - `repositories`: Data access interfaces and adapters.
 - `jpa` / `jdbc`: Persistence implementations.
 
+<a id="en-data-model"></a>
 ### Data model (main entities)
 Coin fields (example):
 - id (Integer)
@@ -262,6 +285,7 @@ Collection fields (example):
 
 Note: The console client prefers `collectionId` to avoid nested-object payloads on POST/PUT.
 
+<a id="en-http-api"></a>
 ### HTTP API (key endpoints)
 - GET /coins
 - GET /coins/{id}
@@ -273,13 +297,20 @@ Note: The console client prefers `collectionId` to avoid nested-object payloads 
 
 Responses use standard HTTP codes. DELETE may return 204 No Content; the client shows the previously fetched record for confirmation.
 
+<a id="en-console-ux"></a>
 ### Console client: behavior and UX
-- Shows lists of available coin IDs before asking for user selection.
-- Shows collections table before asking for `Collection ID` in create/update flows.
-- Normalizes `coinName` to Title Case automatically.
-- After successful PUT, performs a GET and shows the updated coin.
-- On DELETE, asks for confirmation and then shows the deleted coin info along with a success message.
 
+| Feature | Detail |
+|---|---|
+| Interactive menu | Shows an interactive menu with options to list, get by id, create, update and delete coins. |
+| Shows ids before selection | Shows lists of available coin IDs before asking for user selection. |
+| Handles missing ids gracefully | If the user inputs an ID that does not exist, the client shows a concise error message and does not reprint the full list. |
+| Collection ID selection in create/update | Shows collections table before asking for `Collection ID` in create/update flows. |
+| coinName normalization | Normalizes `coinName` to Title Case automatically when creating/updating. |
+| Update flow | After successful PUT, performs a GET and shows the updated coin. |
+| Delete confirmation | On DELETE, asks for confirmation and then shows the deleted coin info along with a success message. |
+
+<a id="en-build-run"></a>
 ### Build & run
 Requirements: JDK 21+, Gradle wrapper.
 
@@ -312,9 +343,11 @@ Client env variables:
 - `AUREUS_HOST` (default: localhost)
 - `AUREUS_PORT` (default: 5000)
 
+<a id="en-examples"></a>
 ### Examples (curl)
 See the Spanish section for curl examples to create, update, get and delete coins.
 
+<a id="en-testing"></a>
 ### Testing and development
 Run tests:
 
@@ -328,15 +361,19 @@ Run only the console module for development:
 ./gradlew :clients:console:run --args="localhost 5000"
 ```
 
+<a id="en-troubleshooting"></a>
 ### Troubleshooting
 - PropertyValueException on update: send `collectionId` instead of nested `collection` object.
 - 204 No Content on delete: client will present deleted info (fetched before delete) for visual confirmation.
 - Gradle JNA errors on Windows: use `gradlew.bat` from cmd.exe.
 
+<a id="en-contributing"></a>
 ### Contributing
 - Fork, branch, commit, PR.
 
+<a id="en-license-contact"></a>
 ### License
+
 MIT — see the `LICENSE` file.
 
 ### Contact
@@ -391,7 +428,7 @@ Coin (request para POST/PUT — campos permitidos / esperados):
 - coinDiameter: Double (requerido)
 - estimatedValue: Double (requerido)
 - originCountry: String (requerido)
-- historicalSignificance: String (opcional)
+- historicalSignificance: String
 - description: String (opcional)
 - collectionId: Integer (recomendado) o collection: { id: Integer }
 
@@ -408,4 +445,3 @@ Antes de abrir un Pull Request considera:
 - Ejecutar `./gradlew build` y `./gradlew test` antes de subir la PR.
 
 ---
-

@@ -3,6 +3,9 @@ package cat.uvic.teknos.dam.aureus.http;
 import cat.uvic.teknos.dam.aureus.controller.CoinController;
 import cat.uvic.teknos.dam.aureus.controller.CollectionController;
 import cat.uvic.teknos.dam.aureus.http.exception.HttpException;
+import cat.uvic.teknos.dam.aureus.security.CryptoUtils;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import cat.uvic.teknos.dam.aureus.service.exception.EntityNotFoundException;
 import com.google.gson.JsonSyntaxException;
 
@@ -29,6 +32,8 @@ import java.util.regex.Pattern;
  * {@code CollectionController}.</p>
  */
 public class RequestRouter {
+
+    private static final Logger LOGGER = Logger.getLogger(RequestRouter.class.getName());
 
     // Lista de rutas registradas para el mapeo declarativo
     private final List<Route> routes = new ArrayList<>();
@@ -101,11 +106,33 @@ public class RequestRouter {
 
         try {
             HttpRequest request = HttpRequest.parse(inputStream);
-            System.out.println("Router: " + request.getMethod() + " " + request.getPath());
+            LOGGER.info("Router: " + request.getMethod() + " " + request.getPath());
+
+            // Verify body hash header if body present
+            String body = request.getBody();
+            if (body != null && !body.isEmpty()) {
+                String providedHash = null;
+                // header names in request.getHeaders() are case sensitive as stored; check common variants
+                Map<String, String> headers = request.getHeaders();
+                if (headers.containsKey(ResponseEntity.BODY_HASH_HEADER)) {
+                    providedHash = headers.get(ResponseEntity.BODY_HASH_HEADER);
+                } else if (headers.containsKey(ResponseEntity.BODY_HASH_HEADER.toLowerCase())) {
+                    providedHash = headers.get(ResponseEntity.BODY_HASH_HEADER.toLowerCase());
+                } else if (headers.containsKey(ResponseEntity.BODY_HASH_HEADER.toUpperCase())) {
+                    providedHash = headers.get(ResponseEntity.BODY_HASH_HEADER.toUpperCase());
+                }
+                String computed = CryptoUtils.hash(body);
+                // Debug logs for hashes (FINE level)
+                LOGGER.log(Level.FINE, "Router: received body hash header = {0}", new Object[]{providedHash == null ? "<missing>" : providedHash});
+                LOGGER.log(Level.FINE, "Router: computed body hash = {0}", new Object[]{computed});
+                if (providedHash == null || !providedHash.equalsIgnoreCase(computed)) {
+                    throw new HttpException(400, "Bad Request", "Invalid or missing body hash");
+                }
+            }
 
             // --- MANEJO ESPECIAL DEL PROTOCOLO DE DESCONEXIÓN ---
             if (request.getMethod().equalsIgnoreCase("GET") && request.getPath().equals(DISCONNECT_PATH)) {
-                System.out.println("Router: Received disconnect request. Sending acknowledgement...");
+                LOGGER.info("Router: Received disconnect request. Sending acknowledgement...");
 
                 // 1. Enviar acuse de recibo
                 ResponseEntity ackResponse = createTextResponseEntity(200, DISCONNECT_ACK_REASON, DISCONNECT_ACK_BODY);
@@ -113,7 +140,7 @@ public class RequestRouter {
                 outputStream.flush(); // asegurar la entrega
 
                 // 2. Esperar 1 segundo
-                System.out.println("Router: Waiting 1 second before allowing connection close...");
+                LOGGER.info("Router: Waiting 1 second before allowing connection close...");
                 try {
                     Thread.sleep(1000); // esperar 1 segundo (1000 ms)
                 } catch (InterruptedException e) {
@@ -139,9 +166,8 @@ public class RequestRouter {
         } catch (Exception e) {
             // Cualquier otro error no previsto
             response = createErrorResponse(500, "Internal Server Error", "An unexpected server error occurred: " + e.getMessage());
-            // Reemplazar printStackTrace por un logging simple
-            System.err.println("Unexpected error in router: " + e.getMessage());
-            e.printStackTrace(System.err);
+            LOGGER.log(Level.SEVERE, "Unexpected error in router: {0}", e.getMessage());
+            LOGGER.log(Level.SEVERE, "Stacktrace:", e);
         } finally {
             // Escribir la respuesta HTTP de vuelta al stream TCP para peticiones normales
             if (response != null) {
@@ -270,3 +296,4 @@ public class RequestRouter {
         return createJsonResponseEntity(status, reason, errorBody);
     }
 }
+

@@ -1,10 +1,13 @@
 package cat.uvic.teknos.dam.aureus.http;
 
+import cat.uvic.teknos.dam.aureus.security.CryptoUtils;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Represents an HTTP response including status, reason, headers and body.
@@ -14,10 +17,13 @@ import java.util.Map;
  * formatting rules used by the embedded server.</p>
  */
 public class ResponseEntity {
+    private static final Logger LOGGER = Logger.getLogger(ResponseEntity.class.getName());
     private final int status;
     private final String reason;
     private final Map<String, String> headers = new LinkedHashMap<>();
     private final byte[] body;
+
+    public static final String BODY_HASH_HEADER = "X-Body-Hash";
 
     public ResponseEntity(int status, String reason, Map<String, String> headers, byte[] body) {
         this.status = status;
@@ -44,6 +50,15 @@ public class ResponseEntity {
         if (!headers.containsKey("Content-Length")) {
             headers.put("Content-Length", String.valueOf(body.length));
         }
+
+        // If there's a body, compute its hash and include in headers (overwrite if present)
+        if (body.length > 0) {
+            String hash = CryptoUtils.hash(body);
+            headers.put(BODY_HASH_HEADER, hash);
+            // Debug logging at FINE level
+            LOGGER.log(Level.FINE, "ResponseEntity: computed body hash = {0}", hash);
+        }
+
         for (Map.Entry<String, String> h : headers.entrySet()) {
             String line = h.getKey() + ": " + h.getValue() + "\r\n";
             out.write(line.getBytes(StandardCharsets.UTF_8));
