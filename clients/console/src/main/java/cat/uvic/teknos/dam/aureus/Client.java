@@ -44,6 +44,10 @@ public class Client {
 
     private final AtomicBoolean running = new AtomicBoolean(true);
 
+    // Session fields for encrypted back-office
+    private String sessionId = null;
+    private String sessionKeyHex = null; // AES key encoded as hex
+
 
 
     private static final String DISCONNECT_PATH = "/disconnect";
@@ -52,6 +56,36 @@ public class Client {
     public Client(String host, int port) {
         this.host = host;
         this.port = port;
+
+        // Try to perform key exchange at startup using client1 by default
+        try {
+            performKeyExchangeAtStartup();
+        } catch (Exception e) {
+            LOGGER.log(Level.INFO, "Key exchange not performed at startup: {0}", e.getMessage());
+        }
+    }
+
+    private void performKeyExchangeAtStartup() throws Exception {
+        // Determine client resource name (default client1)
+        String clientId = System.getProperty("aureus.client.id", "1");
+        String path = "/keys/client" + clientId;
+        Response resp = sendPlainRequest("GET", path, null);
+        if (resp == null || resp.body == null || resp.body.isEmpty()) return;
+        // Parse response JSON
+        Map<String,Object> m = mapper.readValue(resp.body, new TypeReference<>(){});
+        Object sid = m.get("sessionId");
+        Object keyB64 = m.get("key");
+        Object ivHex = m.get("iv");
+        if (sid == null || keyB64 == null || ivHex == null) return;
+        // Decrypt RSA encrypted AES key (server sends key as HEX of RSA-encrypted blob)
+        String clientP12 = "client" + clientId + ".p12";
+        java.security.PrivateKey priv = CryptoUtils.loadFirstPrivateKeyFromPKCS12(clientP12);
+        byte[] encryptedKey = CryptoUtils.hexToBytes(String.valueOf(keyB64));
+        byte[] keyBytes = CryptoUtils.asymmetricDecrypt(encryptedKey, priv);
+        // Store session key as hex
+        this.sessionId = String.valueOf(sid);
+        this.sessionKeyHex = CryptoUtils.bytesToHex(keyBytes);
+        LOGGER.log(Level.INFO, "Established encrypted session with id={0}", this.sessionId);
     }
 
     /**
@@ -188,6 +222,23 @@ public class Client {
      * @throws IOException on network or I/O errors
      */
     private Response sendRequest(String method, String path, String body) throws IOException {
+        // If we have an established encrypted session and a body, encrypt it before sending (hex encoding)
+        String effectiveBody = body;
+        Map<String,String> extraHeaders = new HashMap<>();
+        if (sessionId != null && sessionKeyHex != null && body != null && !body.isEmpty()) {
+            try {
+                String[] ivAndBodyHex = CryptoUtils.encryptWithKeyHex(sessionKeyHex, body);
+                String ivHex = ivAndBodyHex[0];
+                String bodyHex = ivAndBodyHex[1];
+                effectiveBody = bodyHex; // send ciphertext as hex text
+                extraHeaders.put("X-Session-Id", sessionId);
+                extraHeaders.put("X-Body-Encrypted", "1");
+                extraHeaders.put("X-Body-IV", ivHex);
+            } catch (Exception e) {
+                throw new IOException("Failed to encrypt request body: " + e.getMessage(), e);
+            }
+        }
+
         try (Socket socket = new Socket(host, port)) {
             OutputStream out = socket.getOutputStream();
             InputStream in = socket.getInputStream();
@@ -196,15 +247,19 @@ public class Client {
             StringBuilder sb = new StringBuilder();
             sb.append(method).append(" ").append(path).append(" HTTP/1.1\r\n");
             sb.append("Host: ").append(host).append(":").append(port).append("\r\n");
-            if (body != null && !body.isEmpty()) {
-                byte[] bodyBytes = body.getBytes(StandardCharsets.UTF_8);
+            if (effectiveBody != null && !effectiveBody.isEmpty()) {
+                byte[] bodyBytes = effectiveBody.getBytes(StandardCharsets.UTF_8);
                 sb.append("Content-Type: application/json\r\n");
                 sb.append("Content-Length: ").append(bodyBytes.length).append("\r\n");
-                // Add X-Body-Hash header for message integrity
+                // Add X-Body-Hash header for message integrity (hash over the textual body content, which is hex if encrypted)
                 String bodyHash = CryptoUtils.hash(bodyBytes);
                 // Debug logging: outgoing body hash
                 LOGGER.log(Level.FINE, "Client: sending body hash = {0}", bodyHash);
                 sb.append("X-Body-Hash").append(": ").append(bodyHash).append("\r\n");
+                // add extra headers like X-Session-Id
+                for (Map.Entry<String,String> h : extraHeaders.entrySet()) {
+                    sb.append(h.getKey()).append(": ").append(h.getValue()).append("\r\n");
+                }
                 sb.append("\r\n");
                 reqOut.write(sb.toString().getBytes(StandardCharsets.UTF_8));
                 reqOut.write(bodyBytes);
@@ -225,6 +280,7 @@ public class Client {
             String line;
             int contentLength = 0;
             String respBodyHash = null;
+            String respSessionId = null;
             while ((line = reader.readLine()) != null && !line.isEmpty()) {
                 String[] headerParts = line.split(":", 2);
                 if (headerParts.length == 2) {
@@ -259,6 +315,63 @@ public class Client {
             }
 
             lastActivityTime = System.currentTimeMillis();
+
+            return new Response(statusLine, bodyResp);
+        }
+    }
+
+    // Helper used for key exchange which must not encrypt payloads (sends plain GET)
+    private Response sendPlainRequest(String method, String path, String body) throws IOException {
+        try (Socket socket = new Socket(host, port)) {
+            OutputStream out = socket.getOutputStream();
+            InputStream in = socket.getInputStream();
+
+            ByteArrayOutputStream reqOut = new ByteArrayOutputStream();
+            StringBuilder sb = new StringBuilder();
+            sb.append(method).append(" ").append(path).append(" HTTP/1.1\r\n");
+            sb.append("Host: ").append(host).append(":").append(port).append("\r\n");
+            sb.append("Content-Length: 0\r\n");
+            sb.append("\r\n");
+            reqOut.write(sb.toString().getBytes(StandardCharsets.UTF_8));
+
+            out.write(reqOut.toByteArray());
+            out.flush();
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+            String statusLine = reader.readLine();
+            if (statusLine == null) throw new IOException("No response from server");
+            String line;
+            int contentLength = 0;
+            String respBodyHash = null;
+            while ((line = reader.readLine()) != null && !line.isEmpty()) {
+                String[] headerParts = line.split(":", 2);
+                if (headerParts.length == 2) {
+                    String name = headerParts[0].trim();
+                    String value = headerParts[1].trim();
+                    if (name.equalsIgnoreCase("Content-Length")) {
+                        try { contentLength = Integer.parseInt(value); } catch (NumberFormatException ignored) {}
+                    }
+                    if (name.equalsIgnoreCase("X-Body-Hash")) {
+                        respBodyHash = value;
+                    }
+                }
+            }
+            char[] buf = new char[contentLength];
+            int read = 0;
+            while (read < contentLength) {
+                int r = reader.read(buf, read, contentLength - read);
+                if (r == -1) break;
+                read += r;
+            }
+            String bodyResp = new String(buf, 0, read);
+
+            // Verify response body hash if present
+            if (contentLength > 0) {
+                String computedRespHash = CryptoUtils.hash(bodyResp);
+                if (respBodyHash == null || !respBodyHash.equalsIgnoreCase(computedRespHash)) {
+                    throw new IOException("Invalid response body hash");
+                }
+            }
 
             return new Response(statusLine, bodyResp);
         }
