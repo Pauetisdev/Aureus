@@ -4,6 +4,8 @@ import cat.uvic.teknos.dam.aureus.controller.CoinController;
 import cat.uvic.teknos.dam.aureus.controller.CollectionController;
 import cat.uvic.teknos.dam.aureus.http.exception.HttpException;
 import cat.uvic.teknos.dam.aureus.security.CryptoUtils;
+
+import java.security.cert.CertificateException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import cat.uvic.teknos.dam.aureus.service.exception.EntityNotFoundException;
@@ -17,10 +19,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.UUID;
+import java.security.PublicKey;
 
 /**
  * Simple HTTP request router responsible for mapping incoming HTTP requests
@@ -41,6 +45,9 @@ public class RequestRouter {
     private final CoinController coinController;
     private final CollectionController collectionController;
 
+    // In-memory session store: sessionId -> keyHex (AES key encoded as hex)
+    private final ConcurrentHashMap<String, String> sessions = new ConcurrentHashMap<>();
+
     // Constantes para el protocolo de desconexión
     public static final String DISCONNECT_PATH = "/disconnect";
     public static final String DISCONNECT_ACK_REASON = "ACK";
@@ -59,34 +66,29 @@ public class RequestRouter {
 
     private void registerRoutes() {
         // Rutas estáticas (/coins)
-        registerRoute("GET", "/coins", null, (req, var) -> handleGetAllCoins());
-        registerRoute("POST", "/coins", null, (req, var) -> handleCreateCoin(req));
+        registerRoute("GET", "/coins", null, this::handleGetAllCoins);
+        registerRoute("POST", "/coins", null, this::handleCreateCoin);
 
         // Ruta de desconexión - la lógica especial se maneja en handleRequest
-        registerRoute("GET", DISCONNECT_PATH, null, (req, var) -> {
-            // Este handler es un placeholder. La lógica real (ACK + delay) está en handleRequest.
-            // Si llega aquí (lo que no debería pasar en el flujo optimizado), simplemente devuelve el ACK.
-            return createTextResponseEntity(200, DISCONNECT_ACK_REASON, DISCONNECT_ACK_BODY);
-        });
+        registerRoute("GET", DISCONNECT_PATH, null, this::handleDisconnect);
+
+        // Endpoint para negociación de claves: /keys/client{N}
+        Pattern keysPattern = Pattern.compile("^/keys/client(\\d+)$");
+        registerRoute("GET", "/keys/client\\d+", keysPattern, this::handleKeyExchange);
 
         // Rutas para collections (si hay controller)
         if (collectionController != null) {
-            registerRoute("GET", "/collections", null, (req, var) -> handleGetAllCollections());
-            registerRoute("POST", "/collections", null, (req, var) -> handleCreateCollection(req));
+            registerRoute("GET", "/collections", null, this::handleGetAllCollections);
+            registerRoute("POST", "/collections", null, this::handleCreateCollection);
         }
 
         // Rutas dinámicas (/coins/{id})
         // Patrón para capturar el ID (\\d+) al final de la ruta
         Pattern idPattern = Pattern.compile("^/coins/(\\d+)$");
 
-        registerRoute("GET", "/coins/\\d+", idPattern,
-                (req, var) -> handleGetCoinById(Integer.parseInt(var)));
-
-        registerRoute("PUT", "/coins/\\d+", idPattern,
-                (req, var) -> handleUpdateCoin(Integer.parseInt(var), req));
-
-        registerRoute("DELETE", "/coins/\\d+", idPattern,
-                (req, var) -> handleDeleteCoin(Integer.parseInt(var)));
+        registerRoute("GET", "/coins/\\d+", idPattern, this::handleGetCoinById);
+        registerRoute("PUT", "/coins/\\d+", idPattern, this::handleUpdateCoin);
+        registerRoute("DELETE", "/coins/\\d+", idPattern, this::handleDeleteCoin);
     }
 
     private void registerRoute(String method, String pathPattern, Pattern regex, BiFunction<HttpRequest, String, ResponseEntity> handler) {
@@ -102,24 +104,82 @@ public class RequestRouter {
      */
     // Este metodo es llamado por Server.java. Su responsabilidad es I/O y manejo de excepciones generales.
     public void handleRequest(InputStream inputStream, OutputStream outputStream) throws IOException {
-        ResponseEntity response = null;
+         ResponseEntity response = null;
+         HttpRequest request = null; // declarado aquí para poder inspeccionarlo en finally
 
-        try {
-            HttpRequest request = HttpRequest.parse(inputStream);
+         try {
+            request = HttpRequest.parse(inputStream);
             LOGGER.info("Router: " + request.getMethod() + " " + request.getPath());
+
+            // If the client marks the body as encrypted (X-Body-Encrypted header), decrypt it using session key
+            Map<String,String> headers = request.getHeaders();
+            boolean skipHashCheck = false;
+            if (headers != null) {
+                String encFlag = null;
+                if (headers.containsKey("X-Body-Encrypted")) encFlag = headers.get("X-Body-Encrypted");
+                else if (headers.containsKey("x-body-encrypted")) encFlag = headers.get("x-body-encrypted");
+                if (encFlag != null && (encFlag.equals("1") || encFlag.equalsIgnoreCase("true"))) {
+                    try {
+                        String sessionId = null;
+                        if (headers.containsKey("X-Session-Id")) sessionId = headers.get("X-Session-Id");
+                        else if (headers.containsKey("x-session-id")) sessionId = headers.get("x-session-id");
+
+                        if (sessionId == null || sessionId.isEmpty()) throw new HttpException(401, "Unauthorized", "Missing session id");
+                        String keyHex = sessions.get(sessionId);
+                        if (keyHex == null) throw new HttpException(401, "Unauthorized", "Invalid session");
+
+                        // IV should be sent in header X-Body-IV (hex)
+                        String ivHex = null;
+                        if (headers.containsKey("X-Body-IV")) ivHex = headers.get("X-Body-IV");
+                        else if (headers.containsKey("x-body-iv")) ivHex = headers.get("x-body-iv");
+                        if (ivHex == null || ivHex.isEmpty()) throw new HttpException(400, "Bad Request", "Missing IV header");
+
+                        // Body is expected to be hex-encoded ciphertext
+                        String bodyHex = request.getBody();
+                        if (bodyHex == null || bodyHex.isEmpty()) throw new HttpException(400, "Bad Request", "Empty encrypted body");
+
+                        // Verify provided hash over the ciphertext (hex text) BEFORE decrypting
+                        String providedHash = null;
+                        if (headers.containsKey(ResponseEntity.BODY_HASH_HEADER)) {
+                            providedHash = headers.get(ResponseEntity.BODY_HASH_HEADER);
+                        } else if (headers.containsKey(ResponseEntity.BODY_HASH_HEADER.toLowerCase())) {
+                            providedHash = headers.get(ResponseEntity.BODY_HASH_HEADER.toLowerCase());
+                        } else if (headers.containsKey(ResponseEntity.BODY_HASH_HEADER.toUpperCase())) {
+                            providedHash = headers.get(ResponseEntity.BODY_HASH_HEADER.toUpperCase());
+                        }
+                        if (providedHash == null) throw new HttpException(400, "Bad Request", "Missing body hash header");
+                        String computedCipherHash = CryptoUtils.hash(bodyHex);
+                        if (!providedHash.equalsIgnoreCase(computedCipherHash)) {
+                            throw new HttpException(400, "Bad Request", "Invalid or missing body hash");
+                        }
+                        // mark that we've already verified the hash for this request so we skip general check later
+                        skipHashCheck = true;
+
+                        // Decrypt to plaintext using unified helper
+                        String plainStr = CryptoUtils.decrypt(keyHex, ivHex, bodyHex);
+
+                        // Replace request body by decrypted payload for handlers
+                        request = new HttpRequest(request.getMethod(), request.getPath(), request.getHeaders(), plainStr);
+                    } catch (HttpException he) { throw he; }
+                    catch (Exception e) {
+                        throw new HttpException(400, "Bad Request", "Failed to decrypt request body");
+                    }
+                }
+            }
 
             // Verify body hash header if body present
             String body = request.getBody();
-            if (body != null && !body.isEmpty()) {
+            if (!skipHashCheck && body != null && !body.isEmpty()) {
                 String providedHash = null;
                 // header names in request.getHeaders() are case sensitive as stored; check common variants
-                Map<String, String> headers = request.getHeaders();
-                if (headers.containsKey(ResponseEntity.BODY_HASH_HEADER)) {
-                    providedHash = headers.get(ResponseEntity.BODY_HASH_HEADER);
-                } else if (headers.containsKey(ResponseEntity.BODY_HASH_HEADER.toLowerCase())) {
-                    providedHash = headers.get(ResponseEntity.BODY_HASH_HEADER.toLowerCase());
-                } else if (headers.containsKey(ResponseEntity.BODY_HASH_HEADER.toUpperCase())) {
-                    providedHash = headers.get(ResponseEntity.BODY_HASH_HEADER.toUpperCase());
+                if (headers != null) {
+                    if (headers.containsKey(ResponseEntity.BODY_HASH_HEADER)) {
+                        providedHash = headers.get(ResponseEntity.BODY_HASH_HEADER);
+                    } else if (headers.containsKey(ResponseEntity.BODY_HASH_HEADER.toLowerCase())) {
+                        providedHash = headers.get(ResponseEntity.BODY_HASH_HEADER.toLowerCase());
+                    } else if (headers.containsKey(ResponseEntity.BODY_HASH_HEADER.toUpperCase())) {
+                        providedHash = headers.get(ResponseEntity.BODY_HASH_HEADER.toUpperCase());
+                    }
                 }
                 String computed = CryptoUtils.hash(body);
                 // Debug logs for hashes (FINE level)
@@ -171,10 +231,49 @@ public class RequestRouter {
         } finally {
             // Escribir la respuesta HTTP de vuelta al stream TCP para peticiones normales
             if (response != null) {
-                response.writeTo(outputStream);
+                try {
+                    // Check if request had a valid session id and we should encrypt the response
+                    String sessionId = null;
+                    try {
+                        Map<String,String> reqHeaders = (request == null) ? null : request.getHeaders();
+                        if (reqHeaders != null) {
+                            if (reqHeaders.containsKey("X-Session-Id")) sessionId = reqHeaders.get("X-Session-Id");
+                            else if (reqHeaders.containsKey("x-session-id")) sessionId = reqHeaders.get("x-session-id");
+                        }
+                    } catch (Exception ignored) { /* keep sessionId null */ }
+
+                    boolean sent = false;
+                    if (sessionId != null && !sessionId.isEmpty() && sessions.containsKey(sessionId) && response.getBody() != null && response.getBody().length > 0) {
+                        // Try to encrypt response body using session key (stored as hex)
+                        String keyHex = sessions.get(sessionId);
+                        String plain = new String(response.getBody(), java.nio.charset.StandardCharsets.UTF_8);
+                        try {
+                            String[] ivAndBodyHex = CryptoUtils.encryptWithKeyHex(keyHex, plain);
+                            if (ivAndBodyHex != null) {
+                                String ivHex = ivAndBodyHex[0];
+                                String bodyHex = ivAndBodyHex[1];
+                                Map<String,String> headers = new HashMap<>(response.getHeaders());
+                                headers.put("X-Body-Encrypted", "1");
+                                headers.put("X-Body-IV", ivHex);
+                                byte[] outBodyBytes = bodyHex.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                                headers.put("Content-Length", String.valueOf(outBodyBytes.length));
+                                ResponseEntity encryptedResp = new ResponseEntity(response.getStatus(), response.getReason(), headers, outBodyBytes);
+                                encryptedResp.writeTo(outputStream);
+                                sent = true;
+                            }
+                        } catch (Exception e) {
+                            // encryption failed -> will send plaintext below
+                        }
+                    }
+                    if (!sent) {
+                        response.writeTo(outputStream);
+                    }
+                } catch (IOException e) {
+                    System.err.println("Error writing response to client: " + e.getMessage());
+                }
             }
-        }
-    }
+         }
+     }
 
     /**
      * Route a parsed {@link HttpRequest} to the appropriate handler.
@@ -224,6 +323,11 @@ public class RequestRouter {
         return createJsonResponseEntity(200, "OK", jsonBody);
     }
 
+    // Handler placeholder para /disconnect (referenciado en registerRoutes)
+    private ResponseEntity handleDisconnect(HttpRequest req, String var) {
+        return createTextResponseEntity(200, DISCONNECT_ACK_REASON, DISCONNECT_ACK_BODY);
+    }
+
     private ResponseEntity handleGetCoinById(int id) {
         // Lanza EntityNotFoundException si la moneda no existe (capturada en handleRequest)
         String jsonBody = coinController.getCoin(id);
@@ -262,7 +366,43 @@ public class RequestRouter {
         }
     }
 
-    // --- MÉTODOS AUXILIARES HTTP (Creación de Respuesta) ---
+    // --- NUEVO: Manejar intercambio de claves RSA->AES para cliente específico ---
+    private ResponseEntity handleKeyExchange(HttpRequest request, String clientNumber) {
+        try {
+            // Resolve certificate resource name and load public key
+            String certResource = "client" + clientNumber + ".cer";
+            PublicKey clientPub = CryptoUtils.loadPublicKeyFromCertificateResource(certResource);
+
+            // Generate AES key and IV
+            byte[] keyBytes = CryptoUtils.generateRandomBytes(16);
+            byte[] ivBytes = CryptoUtils.generateRandomBytes(16);
+
+            // Encrypt AES key with client's public key
+            byte[] encryptedKey = CryptoUtils.asymmetricEncrypt(keyBytes, clientPub);
+
+            // Store session (server keeps keyHex)
+            String sessionId = UUID.randomUUID().toString();
+            String keyHex = CryptoUtils.bytesToHex(keyBytes);
+            sessions.put(sessionId, keyHex);
+
+            // Prepare JSON response with encrypted key and iv (both hex)
+            String resp = String.format("{\"sessionId\":\"%s\",\"key\":\"%s\",\"iv\":\"%s\"}",
+                    sessionId,
+                    CryptoUtils.bytesToHex(encryptedKey),
+                    CryptoUtils.bytesToHex(ivBytes));
+
+            Map<String,String> headers = new HashMap<>();
+            headers.put("Content-Type", "application/json");
+            byte[] bodyBytes = resp.getBytes(StandardCharsets.UTF_8);
+            headers.put("Content-Length", String.valueOf(bodyBytes.length));
+            return new ResponseEntity(200, "OK", headers, bodyBytes);
+
+        } catch (IOException | CertificateException e) {
+            return createErrorResponse(400, "Bad Request", "Client certificate not found or invalid");
+        } catch (Exception e) {
+            return createErrorResponse(500, "Internal Server Error", "Failed to perform key exchange: " + e.getMessage());
+        }
+    }
 
     private String getRequestBody(HttpRequest request) {
         return request.getBody();
@@ -295,5 +435,13 @@ public class RequestRouter {
         String errorBody = String.format("{\"error\": \"%s\", \"status\": %d}", message, status);
         return createJsonResponseEntity(status, reason, errorBody);
     }
-}
 
+    // --- MANEJADORES DE ACCIONES (overloads para evitar warnings de lambdas) ---
+    private ResponseEntity handleGetAllCoins(HttpRequest req, String var) { return handleGetAllCoins(); }
+    private ResponseEntity handleCreateCoin(HttpRequest req, String var) { return handleCreateCoin(req); }
+    private ResponseEntity handleGetAllCollections(HttpRequest req, String var) { return handleGetAllCollections(); }
+    private ResponseEntity handleCreateCollection(HttpRequest req, String var) { return handleCreateCollection(req); }
+    private ResponseEntity handleGetCoinById(HttpRequest req, String var) { return handleGetCoinById(Integer.parseInt(var)); }
+    private ResponseEntity handleUpdateCoin(HttpRequest req, String var) { return handleUpdateCoin(Integer.parseInt(var), req); }
+    private ResponseEntity handleDeleteCoin(HttpRequest req, String var) { return handleDeleteCoin(Integer.parseInt(var)); }
+}
