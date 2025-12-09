@@ -59,12 +59,23 @@ class CryptoUtilsTest {
     }
 
     @Test
-    void changingSaltChangesHash() {
+    void changingSaltChangesHash() throws Exception {
         String msg = "same-message";
         String hDefault = CryptoUtils.hash(msg);
 
-        System.setProperty("crypto.properties.resource", "crypto-test-alt.properties");
+        // Instead of loading an external properties file, set an alternate salt via reflection
+        // This removes the need for a separate crypto-test-alt.properties resource.
         CryptoUtils.resetForTests();
+        java.lang.reflect.Field fSalt = CryptoUtils.class.getDeclaredField("saltBytes");
+        java.lang.reflect.Field fAlg = CryptoUtils.class.getDeclaredField("algorithm");
+        java.lang.reflect.Field fInit = CryptoUtils.class.getDeclaredField("initialized");
+        fSalt.setAccessible(true);
+        fAlg.setAccessible(true);
+        fInit.setAccessible(true);
+        fAlg.set(null, "SHA-256");
+        fSalt.set(null, "alt-salt-for-tests-1234567890".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        fInit.setBoolean(null, true);
+
         String hAlt = CryptoUtils.hash(msg);
 
         assertNotEquals(hDefault, hAlt, "Different salt must produce different hash for same input");

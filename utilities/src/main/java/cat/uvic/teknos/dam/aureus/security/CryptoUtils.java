@@ -37,6 +37,9 @@ public class CryptoUtils {
     // alias -> resource mapping (optional)
     private static final Map<String, String> keystoreResources = new HashMap<>();
 
+    private static volatile byte[] symmetricKeyBytes;
+    private static volatile byte[] symmetricIvBytes;
+
     private CryptoUtils() {}
 
     public static String hash(String plainText) {
@@ -130,6 +133,21 @@ public class CryptoUtils {
             }
         }
 
+        // --- Inicialización de la clave/IV simétricos (HEX!!) para la Fase 3 ---
+        String symKeyHex = props.getProperty("crypto.symmetric.key", "").trim();
+        if (!symKeyHex.isEmpty()) {
+            symmetricKeyBytes = hexToBytes(symKeyHex);
+        } else {
+            symmetricKeyBytes = null;
+        }
+
+        String symIvHex = props.getProperty("crypto.symmetric.iv", "").trim();
+        if (!symIvHex.isEmpty()) {
+            symmetricIvBytes = hexToBytes(symIvHex);
+        } else {
+            symmetricIvBytes = null;
+        }
+
         initialized = true;
     }
 
@@ -142,6 +160,9 @@ public class CryptoUtils {
         keystoreType = null;
         keystorePassword = null;
         keystoreResources.clear();
+        // Limpiar campos simétricos añadidos
+        symmetricKeyBytes = null;
+        symmetricIvBytes = null;
     }
 
     public static PublicKey loadPublicKeyFromCertificateResource(String resourceName) throws IOException, CertificateException {
@@ -226,7 +247,38 @@ public class CryptoUtils {
         return new String[]{bytesToHex(iv), bytesToHex(ct)};
     }
 
-    // --- Métodos de acceso público para las Fases 4 y 8 ---
+    // --- FASE 3: Cifrado simétrico estático ---
+    /**
+     * Cifra `plainText` usando la clave e IV estáticos configurados en crypto.properties
+     * (campos: crypto.symmetric.key y crypto.symmetric.iv) y devuelve el ciphertext en HEX.
+     * Requiere que `ensureInitialized()` haya cargado la clave/IV en formato HEX.
+     */
+    public static String crypt(String plainText) throws Exception {
+        ensureInitialized();
+        if (plainText == null) return null;
+        if (symmetricKeyBytes == null || symmetricIvBytes == null) {
+            throw new IllegalStateException("Symmetric key/IV not configured in crypto.properties (expected hex in crypto.symmetric.key and crypto.symmetric.iv)");
+        }
+        byte[] ct = aesEncrypt(plainText.getBytes(StandardCharsets.UTF_8), symmetricKeyBytes, symmetricIvBytes);
+        return bytesToHex(ct);
+    }
+
+    /**
+     * Descifra un ciphertext en HEX usando la clave e IV estáticos configurados en crypto.properties
+     * y devuelve el texto plano.
+     */
+    public static String decrypt(String hexCipherText) throws Exception {
+        ensureInitialized();
+        if (hexCipherText == null) return null;
+        if (symmetricKeyBytes == null || symmetricIvBytes == null) {
+            throw new IllegalStateException("Symmetric key/IV not configured in crypto.properties (expected hex in crypto.symmetric.key and crypto.symmetric.iv)");
+        }
+        byte[] ct = hexToBytes(hexCipherText);
+        byte[] plain = aesDecrypt(ct, symmetricKeyBytes, symmetricIvBytes);
+        return new String(plain, StandardCharsets.UTF_8);
+    }
+
+    // --- Métodos de acceso público ---
 
     public static String asymmetricEncrypt(String certificateKeystoreAlias, String plainText) throws Exception {
         ensureInitialized();
@@ -234,7 +286,36 @@ public class CryptoUtils {
         if (resource == null) {
             throw new IOException("Keystore resource not found for alias: " + certificateKeystoreAlias);
         }
-        PublicKey pubKey = loadPublicKeyFromCertificateResource(resource);
+
+        PublicKey pubKey = null;
+        Exception lastEx = null;
+        // Try heuristics based on resource extension
+        try {
+            if (resource.endsWith(".p12") || resource.endsWith(".pfx") || resource.endsWith(".jks")) {
+                pubKey = getPublicKey(certificateKeystoreAlias);
+            } else if (resource.endsWith(".cer") || resource.endsWith(".crt") || resource.endsWith(".pem")) {
+                pubKey = loadPublicKeyFromCertificateResource(resource);
+            } else {
+                // Unknown extension: try keystore first then certificate
+                try {
+                    pubKey = getPublicKey(certificateKeystoreAlias);
+                } catch (Exception e) {
+                    lastEx = e;
+                    pubKey = loadPublicKeyFromCertificateResource(resource);
+                }
+            }
+        } catch (Exception e) {
+            lastEx = e;
+            // Fallback: try to load as certificate resource
+            try {
+                pubKey = loadPublicKeyFromCertificateResource(resource);
+            } catch (Exception e2) {
+                // If both attempts fail, throw the first meaningful exception
+                if (lastEx != null) throw lastEx;
+                else throw e2;
+            }
+        }
+
         byte[] cipherText = asymmetricEncrypt(plainText.getBytes(StandardCharsets.UTF_8), pubKey);
         return bytesToHex(cipherText);
     }
