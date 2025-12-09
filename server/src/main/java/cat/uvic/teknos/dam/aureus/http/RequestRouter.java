@@ -369,26 +369,25 @@ public class RequestRouter {
     // --- NUEVO: Manejar intercambio de claves RSA->AES para cliente específico ---
     private ResponseEntity handleKeyExchange(HttpRequest request, String clientNumber) {
         try {
-            // Resolve certificate resource name and load public key
-            String certResource = "client" + clientNumber + ".cer";
-            PublicKey clientPub = CryptoUtils.loadPublicKeyFromCertificateResource(certResource);
+            // Use high-level API: encrypt the AES key (as HEX string) for the client alias (clientN)
+            String alias = "client" + clientNumber;
 
             // Generate AES key and IV
             byte[] keyBytes = CryptoUtils.generateRandomBytes(16);
             byte[] ivBytes = CryptoUtils.generateRandomBytes(16);
 
-            // Encrypt AES key with client's public key
-            byte[] encryptedKey = CryptoUtils.asymmetricEncrypt(keyBytes, clientPub);
+            // Convert key to HEX and encrypt using the alias-based high-level API
+            String keyHex = CryptoUtils.bytesToHex(keyBytes);
+            String encryptedKeyHex = CryptoUtils.asymmetricEncrypt(alias, keyHex);
 
             // Store session (server keeps keyHex)
             String sessionId = UUID.randomUUID().toString();
-            String keyHex = CryptoUtils.bytesToHex(keyBytes);
             sessions.put(sessionId, keyHex);
 
             // Prepare JSON response with encrypted key and iv (both hex)
             String resp = String.format("{\"sessionId\":\"%s\",\"key\":\"%s\",\"iv\":\"%s\"}",
                     sessionId,
-                    CryptoUtils.bytesToHex(encryptedKey),
+                    encryptedKeyHex,
                     CryptoUtils.bytesToHex(ivBytes));
 
             Map<String,String> headers = new HashMap<>();
@@ -400,7 +399,7 @@ public class RequestRouter {
         } catch (IOException | CertificateException e) {
             return createErrorResponse(400, "Bad Request", "Client certificate not found or invalid");
         } catch (Exception e) {
-            return createErrorResponse(500, "Internal Server Error", "Failed to perform key exchange: " + e.getMessage());
+            return createErrorResponse(500, "Internal Server Error", "Failed to perform key exchange");
         }
     }
 

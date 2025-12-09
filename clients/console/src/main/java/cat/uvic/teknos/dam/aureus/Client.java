@@ -74,17 +74,18 @@ public class Client {
         // Parse response JSON
         Map<String,Object> m = mapper.readValue(resp.body, new TypeReference<>(){});
         Object sid = m.get("sessionId");
-        Object keyB64 = m.get("key");
+        Object keyHexEncrypted = m.get("key");
         Object ivHex = m.get("iv");
-        if (sid == null || keyB64 == null || ivHex == null) return;
-        // Decrypt RSA encrypted AES key (server sends key as HEX of RSA-encrypted blob)
-        String clientP12 = "client" + clientId + ".p12";
-        java.security.PrivateKey priv = CryptoUtils.loadFirstPrivateKeyFromPKCS12(clientP12);
-        byte[] encryptedKey = CryptoUtils.hexToBytes(String.valueOf(keyB64));
-        byte[] keyBytes = CryptoUtils.asymmetricDecrypt(encryptedKey, priv);
-        // Store session key as hex
+        if (sid == null || keyHexEncrypted == null || ivHex == null) return;
+
+        // Use high-level API to decrypt the AES key: server encrypted HEX cipher text using client's public key
+        String clientAlias = "client" + clientId;
+        String encryptedKeyHex = String.valueOf(keyHexEncrypted);
+        String decryptedKeyHex = CryptoUtils.asymmetricDecrypt(clientAlias, encryptedKeyHex);
+
+        // decryptedKeyHex should contain the AES key encoded as HEX (as produced by the server)
         this.sessionId = String.valueOf(sid);
-        this.sessionKeyHex = CryptoUtils.bytesToHex(keyBytes);
+        this.sessionKeyHex = decryptedKeyHex;
         LOGGER.log(Level.INFO, "Established encrypted session with id={0}", this.sessionId);
     }
 
@@ -280,17 +281,30 @@ public class Client {
             String line;
             int contentLength = 0;
             String respBodyHash = null;
+            boolean respEncrypted = false;
+            String respIvHex = null;
             String respSessionId = null;
+            Map<String,String> respHeaders = new HashMap<>();
             while ((line = reader.readLine()) != null && !line.isEmpty()) {
                 String[] headerParts = line.split(":", 2);
                 if (headerParts.length == 2) {
                     String name = headerParts[0].trim();
                     String value = headerParts[1].trim();
+                    respHeaders.put(name, value);
                     if (name.equalsIgnoreCase("Content-Length")) {
                         try { contentLength = Integer.parseInt(value); } catch (NumberFormatException ignored) {}
                     }
                     if (name.equalsIgnoreCase("X-Body-Hash")) {
                         respBodyHash = value;
+                    }
+                    if (name.equalsIgnoreCase("X-Body-Encrypted")) {
+                        respEncrypted = value.equals("1") || value.equalsIgnoreCase("true");
+                    }
+                    if (name.equalsIgnoreCase("X-Body-IV")) {
+                        respIvHex = value;
+                    }
+                    if (name.equalsIgnoreCase("X-Session-Id")) {
+                        respSessionId = value;
                     }
                 }
             }
@@ -303,14 +317,32 @@ public class Client {
             }
             String bodyResp = new String(buf, 0, read);
 
-            // Verify response body hash if present
-            if (contentLength > 0) {
-                String computedRespHash = CryptoUtils.hash(bodyResp);
-                // Debug logging: response hashes
-                LOGGER.log(Level.FINE, "Client: received response body hash header = {0}", (respBodyHash == null ? "<missing>" : respBodyHash));
-                LOGGER.log(Level.FINE, "Client: computed response body hash = {0}", computedRespHash);
-                if (respBodyHash == null || !respBodyHash.equalsIgnoreCase(computedRespHash)) {
+            // If response is encrypted, verify hash over ciphertext then decrypt using session key
+            if (respEncrypted) {
+                // Verify response body hash over ciphertext
+                String computedCipherHash = CryptoUtils.hash(bodyResp);
+                LOGGER.log(Level.FINE, "Client: received encrypted response hash = {0}", respBodyHash);
+                LOGGER.log(Level.FINE, "Client: computed encrypted response hash = {0}", computedCipherHash);
+                if (respBodyHash == null || !respBodyHash.equalsIgnoreCase(computedCipherHash)) {
                     throw new IOException("Invalid response body hash");
+                }
+                if (sessionKeyHex == null || sessionKeyHex.isEmpty()) throw new IOException("Missing session key to decrypt response");
+                if (respIvHex == null || respIvHex.isEmpty()) throw new IOException("Missing IV header in encrypted response");
+                try {
+                    String plain = CryptoUtils.decrypt(sessionKeyHex, respIvHex, bodyResp);
+                    bodyResp = plain;
+                } catch (Exception e) {
+                    throw new IOException("Failed to decrypt response body: " + e.getMessage(), e);
+                }
+            } else {
+                // Non-encrypted response: if hash header present, validate over plaintext
+                if (contentLength > 0) {
+                    String computedRespHash = CryptoUtils.hash(bodyResp);
+                    LOGGER.log(Level.FINE, "Client: received response body hash header = {0}", (respBodyHash == null ? "<missing>" : respBodyHash));
+                    LOGGER.log(Level.FINE, "Client: computed response body hash = {0}", computedRespHash);
+                    if (respBodyHash == null || !respBodyHash.equalsIgnoreCase(computedRespHash)) {
+                        throw new IOException("Invalid response body hash");
+                    }
                 }
             }
 
