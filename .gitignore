@@ -1,15 +1,38 @@
-# Ignore Gradle project-specific cache directory
-.gradle
+# --- Gradle & Build ---
+.gradle/
+build/
+target/
+/target
+bin/
+out/
+generated/
 
-# Ignore Gradle build output directory
-build
+# --- IDEs (IntelliJ, Eclipse, VS Code) ---
+.idea/
+*.iml
+*.iws
+.settings/
+.classpath
+.project
+.factorypath
+.vscode/
+.nb-conf
+nbproject/
 
-# Ignore IntelliJ IDEA project files
-.idea
-
-# Ignore configuration and sensitive files
+# --- Configuración y Secretos ---
 *.properties
 !gradle.properties
-
-# Ignore database files
 *.db
+*.p12
+*.jks
+
+# --- Sistema y Herramientas ---
+.DS_Store
+Thumbs.db
+.java-version
+.tool-versions
+./src/test/postman/reports/
+
+# --- Otros ---
+springboot-petclinic-client/
+springboot-petclinic-server/
