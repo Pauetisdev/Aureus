@@ -300,10 +300,6 @@ Por favor respeta las convenciones de código y añade tests para cambios en `se
 
 ---
 
-Gracias por usar y contribuir a Aureus. Si quieres que añada una sección de API detallada con todos los campos y ejemplos de respuesta (o scripts para levantar un entorno local), dímelo y lo incluyo.
-
----
-
 
 ## Guía para desarrolladores: checklist para PRs y cambios
 
